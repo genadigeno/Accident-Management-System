@@ -18,7 +18,7 @@
 
 ---
 
-## 📖 What is this, in plain language?
+## 📖 What is it?
 
 Imagine a city's **emergency dispatch center**. When something happens — a car crash, a fire, a break-in — a single report comes in. A dispatcher has to instantly decide *who* needs to know: the police, the ambulance, the fire brigade, or several of them at once. They also keep a tally of how many incidents of each kind happened, so the city can plan ahead.
 
