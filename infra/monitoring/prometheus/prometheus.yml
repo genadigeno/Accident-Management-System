@@ -1,0 +1,21 @@
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+
+scrape_configs:
+  # AMS Spring Boot services, scraped via Actuator's Prometheus endpoint.
+  # Services run on the host (java -jar) on their default ports; Prometheus
+  # reaches them through host.docker.internal.
+  - job_name: ams-services
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["host.docker.internal:8080"]
+        labels: { service: accident-event-stream }
+      - targets: ["host.docker.internal:18089"]
+        labels: { service: emergency-service }
+      - targets: ["host.docker.internal:28089"]
+        labels: { service: law-enforcement-service }
+      - targets: ["host.docker.internal:38089"]
+        labels: { service: fire-rescue-service }
+      - targets: ["host.docker.internal:48089"]
+        labels: { service: statistics-service }

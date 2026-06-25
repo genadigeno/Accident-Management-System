@@ -1,0 +1,26 @@
+{
+  "type":"record",
+  "name":"DeserializationErrorResponse",
+  "namespace":"ams.data.model",
+  "fields":[
+    {
+      "name": "date",
+      "type": {
+        "type": "int",
+        "logicalType": "date"
+      }
+    },
+    {
+      "name":"value",
+      "type":"string"
+    },
+    {
+      "name":"description",
+      "type":"string"
+    },
+    {
+      "name":"key",
+      "type":"string"
+    }
+  ]
+}

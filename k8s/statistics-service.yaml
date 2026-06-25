@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: statistics-service
+  labels:
+    app: statistics-service
+spec:
+  selector:
+    app: statistics-service
+  ports:
+    - name: http
+      port: 48089
+      targetPort: 48089
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: statistics-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: statistics-service
+  template:
+    metadata:
+      labels:
+        app: statistics-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port: "48089"
+    spec:
+      containers:
+        - name: statistics-service
+          image: ams/statistics-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 48089
+          envFrom:
+            - configMapRef:
+                name: ams-config
+          env:
+            - { name: SERVER_PORT, value: "48089" }
+            - { name: POSTGRES_URL, value: "jdbc:postgresql://postgres:5432/ams_statistics" }
+            - name: POSTGRES_USER
+              valueFrom: { secretKeyRef: { name: ams-db, key: POSTGRES_USER } }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: ams-db, key: POSTGRES_PASSWORD } }
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 48089
+            initialDelaySeconds: 25
+            periodSeconds: 10
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 48089
+            initialDelaySeconds: 45
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              memory: "1Gi"

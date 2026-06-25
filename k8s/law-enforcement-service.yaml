@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: law-enforcement-service
+  labels:
+    app: law-enforcement-service
+spec:
+  selector:
+    app: law-enforcement-service
+  ports:
+    - name: http
+      port: 28089
+      targetPort: 28089
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: law-enforcement-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: law-enforcement-service
+  template:
+    metadata:
+      labels:
+        app: law-enforcement-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port: "28089"
+    spec:
+      containers:
+        - name: law-enforcement-service
+          image: ams/law-enforcement-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 28089
+          envFrom:
+            - configMapRef:
+                name: ams-config
+          env:
+            - { name: SERVER_PORT, value: "28089" }
+            - { name: POSTGRES_URL, value: "jdbc:postgresql://postgres:5432/ams_lawenf" }
+            - name: POSTGRES_USER
+              valueFrom: { secretKeyRef: { name: ams-db, key: POSTGRES_USER } }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: ams-db, key: POSTGRES_PASSWORD } }
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 28089
+            initialDelaySeconds: 25
+            periodSeconds: 10
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 28089
+            initialDelaySeconds: 45
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              memory: "1Gi"

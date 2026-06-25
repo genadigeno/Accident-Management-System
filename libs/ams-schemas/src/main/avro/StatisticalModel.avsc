@@ -1,0 +1,41 @@
+{
+  "type": "record",
+  "name": "StatisticalModel",
+  "namespace": "ams.data.model",
+  "fields": [
+    {
+      "name": "id",
+      "type": "long"
+    },
+    {
+      "name":"type",
+      "type": {
+        "type": "enum",
+        "name": "AccidentType",
+        "symbols": ["CRIMINAL", "CAR_ACCIDENT", "OTHER_ACCIDENT", "FIRE_ACCIDENT"]
+      }
+    },
+    {
+      "name": "from",
+      "type": {
+        "type": "long",
+        "logicalType": "local-timestamp-millis"
+      }
+    },
+    {
+      "name": "end",
+      "type": {
+        "type": "long",
+        "logicalType": "local-timestamp-millis"
+      }
+    },
+    {
+      "name": "count",
+      "type": "long"
+    },
+    {
+      "name": "cacheId",
+      "type": "string"
+    }
+  ]
+}

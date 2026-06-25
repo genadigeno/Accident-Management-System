@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AMS — Live Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+<body class="bg-light">
+<nav class="navbar navbar-dark bg-dark px-3">
+    <span class="navbar-brand mb-0 h1">🚨 AMS — Live Dashboard</span>
+    <span id="status" class="badge bg-secondary">connecting…</span>
+</nav>
+
+<div class="container py-4">
+    <!-- Service discovery -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <strong>Services</strong>
+            <span class="text-muted small">health-polled every 5s</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0 align-middle">
+                <thead class="table-light">
+                <tr><th>Service</th><th>Status</th><th>Latency</th><th>HTTP</th><th>Last checked</th></tr>
+                </thead>
+                <tbody id="services"><tr><td colspan="5" class="text-muted small">Waiting for first poll…</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Generate events -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body d-flex align-items-end gap-3 flex-wrap">
+            <div>
+                <label for="total" class="form-label mb-1">Generate accident events</label>
+                <input type="number" id="total" class="form-control" value="20" min="1" max="10000" style="width: 160px;">
+            </div>
+            <button id="generate" class="btn btn-primary">Send</button>
+            <span id="generate-result" class="text-muted small"></span>
+        </div>
+    </div>
+
+    <!-- Sent batches -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <strong>Sent batches</strong>
+            <span class="text-muted small">producer ack status</span>
+        </div>
+        <div class="table-responsive" style="max-height: 30vh; overflow-y: auto;">
+            <table class="table table-sm mb-0 align-middle">
+                <thead class="table-light sticky-top">
+                <tr><th>Batch</th><th>Total</th><th>Produced</th><th>Failed</th><th>Status</th><th style="width:25%">Progress</th></tr>
+                </thead>
+                <tbody id="batches"><tr><td colspan="6" class="text-muted small">No batches yet.</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Counters -->
+    <div class="row g-3 mb-4">
+        <div class="col"><div class="card text-bg-dark shadow-sm"><div class="card-body text-center"><div class="display-6" id="count-total">0</div><div class="text-uppercase small">Total</div></div></div></div>
+        <div class="col"><div class="card text-bg-primary shadow-sm"><div class="card-body text-center"><div class="display-6" id="count-CAR_ACCIDENT">0</div><div class="text-uppercase small">Car</div></div></div></div>
+        <div class="col"><div class="card text-bg-danger shadow-sm"><div class="card-body text-center"><div class="display-6" id="count-FIRE_ACCIDENT">0</div><div class="text-uppercase small">Fire</div></div></div></div>
+        <div class="col"><div class="card text-bg-warning shadow-sm"><div class="card-body text-center"><div class="display-6" id="count-CRIMINAL">0</div><div class="text-uppercase small">Criminal</div></div></div></div>
+        <div class="col"><div class="card text-bg-secondary shadow-sm"><div class="card-body text-center"><div class="display-6" id="count-OTHER_ACCIDENT">0</div><div class="text-uppercase small">Other</div></div></div></div>
+    </div>
+
+    <!-- Live analytics -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <strong>Live analytics</strong>
+            <span class="text-muted small">aggregated every second</span>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 mb-3">
+                <div class="col"><div class="border rounded p-2 text-center"><div class="h4 mb-0" id="a-rate">0</div><div class="small text-muted">events / sec</div></div></div>
+                <div class="col"><div class="border rounded p-2 text-center"><div class="h4 mb-0" id="a-total">0</div><div class="small text-muted">total events</div></div></div>
+                <div class="col"><div class="border rounded p-2 text-center"><div class="h4 mb-0 text-info" id="a-sensitive">0</div><div class="small text-muted">sensitive-zone hits</div></div></div>
+                <div class="col"><div class="border rounded p-2 text-center"><div class="h4 mb-0 text-danger" id="a-fraud">0</div><div class="small text-muted">fraud alerts</div></div></div>
+            </div>
+            <div class="row g-3 align-items-center">
+                <div class="col-md-4"><canvas id="chart-types" height="200"></canvas></div>
+                <div class="col-md-5"><canvas id="chart-rate" height="200"></canvas></div>
+                <div class="col-md-3">
+                    <div class="small text-muted mb-1">Top locations</div>
+                    <ul class="list-group list-group-flush small" id="a-locations"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live feed -->
+    <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <strong>Live event feed</strong>
+            <span class="text-muted small">most recent 50</span>
+        </div>
+        <div class="table-responsive" style="max-height: 60vh; overflow-y: auto;">
+            <table class="table table-striped table-sm mb-0">
+                <thead class="table-light sticky-top">
+                <tr><th>Time</th><th>Type</th><th>Address</th><th>Latitude</th><th>Longitude</th></tr>
+                </thead>
+                <tbody id="feed"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>

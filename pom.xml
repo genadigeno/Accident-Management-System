@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>ams</groupId>
+    <artifactId>accident-management-system</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+
+    <name>Accident Management System</name>
+    <description>
+        Aggregator build for the Accident Management System monorepo.
+        Each module remains an independent Spring Boot / Maven project; this pom only
+        sequences them so the whole repo can be built with a single command:
+
+            mvn clean package
+
+        ams-schemas (the shared Avro contract) is listed first so it is built before
+        the services that depend on it.
+    </description>
+
+    <modules>
+        <module>libs/ams-schemas</module>
+        <module>services/accident-event-stream</module>
+        <module>services/emergency-service</module>
+        <module>services/law-enforcement-service</module>
+        <module>services/firerescue-service</module>
+        <module>services/statistics-service</module>
+        <module>tools/stream-bombarder-app</module>
+        <module>tools/dlt-replay-app</module>
+        <module>tools/uiapp</module>
+    </modules>
+</project>

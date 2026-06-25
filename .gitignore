@@ -1,0 +1,74 @@
+# ───────────────────────────── Build output ─────────────────────────────
+target/
+build/
+!**/src/main/**/target/
+!**/src/test/**/target/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# ───────────────────────────── Java / JVM ───────────────────────────────
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+!**/.mvn/wrapper/maven-wrapper.jar
+
+# ───────────────────────── Kafka Streams state ──────────────────────────
+state-dir/
+custom-directory-*/
+/tmp/kafka-streams/
+
+# ──────────────────────────── Secrets / env ─────────────────────────────
+.env
+*.env
+!.env.example
+
+# ──────────────────────────────── IDEs ──────────────────────────────────
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+### Eclipse / STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### VS Code ###
+.vscode/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# ──────────────────────────────── OS ────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ──────────────────────────────── Logs ──────────────────────────────────
+logs/
+*.log
+
+# ─────────────────────────── Helper artifacts ───────────────────────────
+HELP.md
+dependency-reduced-pom.xml
+
+# ───────────────── Local scratch / experiment workspace ─────────────────
+# Personal scripts, AWS notes, and Kafka Streams RocksDB state stores.
+/ams/
+/infra
+infra/
+*.txt

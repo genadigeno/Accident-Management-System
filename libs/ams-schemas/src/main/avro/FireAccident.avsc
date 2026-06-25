@@ -1,0 +1,38 @@
+{
+  "type": "record",
+  "name": "FireAccidentModel",
+  "namespace": "ams.data.model",
+  "fields": [
+    {
+      "name": "id",
+      "type": "long"
+    },
+    {
+      "name": "date",
+      "type": {
+        "type": "int",
+        "logicalType": "date"
+      }
+    },
+    {
+      "name": "latitude",
+      "type": "string"
+    },
+    {
+      "name": "address",
+      "type": "string"
+    },
+    {
+      "name": "longitude",
+      "type": "string"
+    },
+    {
+      "name": "description",
+      "type": "string"
+    },
+    {
+      "name": "cacheId",
+      "type": "string"
+    }
+  ]
+}

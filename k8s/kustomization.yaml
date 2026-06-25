@@ -1,0 +1,45 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# All resources land in the "ams" namespace.
+namespace: ams
+
+resources:
+  - namespace.yaml
+  # config
+  - configmap.yaml
+  - secret.yaml
+  - postgres-init.configmap.yaml
+  # infrastructure (dev)
+  - postgres.yaml
+  - kafka.yaml
+  - schema-registry.yaml
+  # application services
+  - accident-event-stream.yaml
+  - emergency-service.yaml
+  - law-enforcement-service.yaml
+  - firerescue-service.yaml
+  - statistics-service.yaml
+  - uiapp.yaml
+  # NOTE: stream-bombarder.job.yaml is intentionally NOT included — it is an on-demand Job,
+  # applied separately when you want to generate load.
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: ams
+    includeSelectors: false
+
+# Pin/override image tags here (e.g. point at a registry: newName: registry/ams/uiapp).
+images:
+  - name: ams/accident-event-stream
+    newTag: latest
+  - name: ams/emergency-service
+    newTag: latest
+  - name: ams/law-enforcement-service
+    newTag: latest
+  - name: ams/firerescue-service
+    newTag: latest
+  - name: ams/statistics-service
+    newTag: latest
+  - name: ams/uiapp
+    newTag: latest

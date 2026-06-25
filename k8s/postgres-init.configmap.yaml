@@ -1,0 +1,12 @@
+# Creates a dedicated database per consumer service. Each service owns its own Flyway schema, so
+# they must not share one database (their V1 migrations would collide). Runs once, on first start.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+data:
+  init.sql: |
+    CREATE DATABASE ams_emergency;
+    CREATE DATABASE ams_lawenf;
+    CREATE DATABASE ams_firerescue;
+    CREATE DATABASE ams_statistics;

@@ -1,0 +1,30 @@
+# On-demand load generator. Not part of the always-on stack — apply it when you want traffic:
+#   kubectl -n ams apply -f k8s/stream-bombarder.job.yaml
+#   kubectl -n ams delete job stream-bombarder      # before re-running
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: stream-bombarder
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app: stream-bombarder
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: stream-bombarder
+          image: ams/stream-bombarder:latest
+          imagePullPolicy: IfNotPresent
+          # Bounded run so the Job completes; tune or remove --count for continuous load.
+          args: ["--count=5000", "--scale=2"]
+          envFrom:
+            - configMapRef:
+                name: ams-config
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              memory: "512Mi"

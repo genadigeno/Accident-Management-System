@@ -1,0 +1,9 @@
+# Shared configuration for all AMS services (in-cluster endpoints).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ams-config
+data:
+  SPRING_PROFILES_ACTIVE: "dev"
+  BOOTSTRAP_SERVERS: "kafka:9092"
+  SCHEMA_REGISTRY_URL: "http://schema-registry:8081"

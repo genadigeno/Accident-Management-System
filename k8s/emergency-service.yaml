@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: emergency-service
+  labels:
+    app: emergency-service
+spec:
+  selector:
+    app: emergency-service
+  ports:
+    - name: http
+      port: 18089
+      targetPort: 18089
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: emergency-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: emergency-service
+  template:
+    metadata:
+      labels:
+        app: emergency-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port: "18089"
+    spec:
+      containers:
+        - name: emergency-service
+          image: ams/emergency-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 18089
+          envFrom:
+            - configMapRef:
+                name: ams-config
+          env:
+            - { name: SERVER_PORT, value: "18089" }
+            - { name: POSTGRES_URL, value: "jdbc:postgresql://postgres:5432/ams_emergency" }
+            - name: POSTGRES_USER
+              valueFrom: { secretKeyRef: { name: ams-db, key: POSTGRES_USER } }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: ams-db, key: POSTGRES_PASSWORD } }
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 18089
+            initialDelaySeconds: 25
+            periodSeconds: 10
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 18089
+            initialDelaySeconds: 45
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              memory: "1Gi"

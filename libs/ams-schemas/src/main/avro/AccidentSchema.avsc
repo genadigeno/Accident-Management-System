@@ -1,0 +1,46 @@
+{
+  "type":"record",
+  "name":"AccidentEventModel",
+  "namespace":"ams.data.model",
+  "fields":[
+    {
+      "name":"id",
+      "type":"long"
+    },
+    {
+      "name":"type",
+      "type": {
+        "type": "enum",
+        "name": "AccidentType",
+        "symbols": ["CRIMINAL", "CAR_ACCIDENT", "OTHER_ACCIDENT", "FIRE_ACCIDENT"]
+      }
+    },
+    {
+      "name": "date",
+      "type": {
+        "type": "int",
+        "logicalType": "date"
+      }
+    },
+    {
+      "name":"location",
+      "type": {
+        "type" : "record",
+        "name" : "Location",
+        "fields" : [
+          {"name": "address", "type": "string"},
+          {"name": "latitude", "type": "string"},
+          {"name": "longitude", "type": "string"}
+        ]
+      }
+    },
+    {
+      "name":"description",
+      "type":"string"
+    },
+    {
+      "name":"cacheId",
+      "type":"string"
+    }
+  ]
+}

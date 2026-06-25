@@ -1,0 +1,13 @@
+# Keep the build context small and reproducible.
+**/target/
+**/*.jar
+.git/
+.idea/
+**/.idea/
+**/state-dir/
+**/logs/
+*.log
+**/.env
+k8s/
+docs/
+**/materials/
