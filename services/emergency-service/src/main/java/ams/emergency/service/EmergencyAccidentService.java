@@ -29,7 +29,7 @@ public class EmergencyAccidentService {
         if (batch.isEmpty()) {
             return;
         }
-        String topic = batch.getFirst().getKafkaTopic();
+        String topic = batch.get(0).getKafkaTopic();
         Map<Integer, Long> highWaterMarks = emergencyAccidentRepository.findHighWaterMarks(topic).stream()
                 .collect(Collectors.toMap(PartitionOffset::getPartition, PartitionOffset::getMaxOffset));
 
