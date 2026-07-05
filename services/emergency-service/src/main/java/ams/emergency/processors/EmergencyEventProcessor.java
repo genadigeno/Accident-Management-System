@@ -8,6 +8,7 @@ import ams.emergency.service.EmergencyAccidentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.kafka.listener.BatchListenerFailedException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,25 +26,32 @@ public class EmergencyEventProcessor {
         log.info("Total messages - {}", records.size());
 
         List<EmergencyAccident> batch = new ArrayList<>();
-        try {
-            for (ConsumerRecord<String, EmergencyEventModel> rec : records){
+        for (ConsumerRecord<String, EmergencyEventModel> rec : records) {
+            // A null value means the record could not be deserialized (ErrorHandlingDeserializer).
+            if (rec.value() == null) {
+                emergencyAccidentService.saveBatch(batch);
+                throw new BatchListenerFailedException("value could not be deserialized", rec);
+            }
+            try {
                 log.info("Record: value - {}, key - {}", rec.value(), rec.key());
                 EmergencyAccident entity = EmergencyMapper.MAPPER.emergencyEventModelToEmergencyAccident(rec.value());
                 entity.setKafkaTopic(rec.topic());
                 entity.setKafkaPartition(rec.partition());
                 entity.setKafkaOffset(rec.offset());
                 batch.add(entity);
+            } catch (Exception ex) {
+                log.error("Poison record at {}-{}@{}: {}", rec.topic(), rec.partition(), rec.offset(),
+                        ex.getMessage(), ex);
+                // Save what mapped cleanly, then point the error handler at the exact record: it
+                // retries/dead-letters ONLY this record and resumes after it, instead of retrying
+                // and dead-lettering the entire batch.
+                emergencyAccidentService.saveBatch(batch);
+                throw new BatchListenerFailedException("record cannot be processed", ex, rec);
             }
-        } catch (Exception ex) {
-            log.error("Error processing record due to {}", ex.getMessage(), ex);
-            //re-throw an exception to trigger the recoverer
-            throw ex;
-        } finally {
-            log.info("Batch size - {}", batch.size());
-            //in case an exception still save a batch we got before the exception
-            emergencyAccidentService.saveBatch(batch);
-            log.info("Batch saved");
         }
+        log.info("Batch size - {}", batch.size());
+        emergencyAccidentService.saveBatch(batch);
+        log.info("Batch saved");
     }
 
 }

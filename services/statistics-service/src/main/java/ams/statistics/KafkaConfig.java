@@ -20,8 +20,13 @@ import org.springframework.kafka.listener.BatchListenerFailedException;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.RecoverableDataAccessException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries;
+import org.springframework.transaction.CannotCreateTransactionException;
+import org.springframework.util.backoff.ExponentialBackOff;
 
 import java.util.Map;
 
@@ -50,9 +55,12 @@ public class KafkaConfig {
         props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         props.put(KafkaAvroDeserializerConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl);
         props.put(KafkaAvroDeserializerConfig.SPECIFIC_AVRO_READER_CONFIG, specificAvroReader);
+        // Both deserializers are wrapped: an unwrapped KEY deserializer throws inside poll(),
+        // where the error handler cannot seek past it — one poison key would stall the
+        // partition forever.
         return new DefaultKafkaConsumerFactory<>(
                 props,
-                new KafkaAvroDeserializer(),
+                new ErrorHandlingDeserializer<>(new KafkaAvroDeserializer()),
                 new ErrorHandlingDeserializer<>(new KafkaAvroDeserializer())
         );
     }
@@ -81,16 +89,36 @@ public class KafkaConfig {
                 kafkaTemplate(),
                 (record, ex) -> new TopicPartition(deadLetterTopic, -1));
 
-        ExponentialBackOffWithMaxRetries backOff = new ExponentialBackOffWithMaxRetries(3);
-        backOff.setInitialInterval(500L);
-        backOff.setMultiplier(2.0);
-        backOff.setMaxInterval(10_000L);
+        // Default: infrastructure failures — retry until healed, backing off up to 30s.
+        ExponentialBackOff infrastructureBackOff = new ExponentialBackOff(1_000L, 2.0);
+        infrastructureBackOff.setMaxInterval(30_000L);
 
-        DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, backOff);
-        errorHandler.addNotRetryableExceptions(
-                NullPointerException.class,
-                BatchListenerFailedException.class);
+        // Poison records — a few quick retries, then the record goes to the DLT.
+        ExponentialBackOffWithMaxRetries poisonBackOff = new ExponentialBackOffWithMaxRetries(3);
+        poisonBackOff.setInitialInterval(500L);
+        poisonBackOff.setMultiplier(2.0);
+        poisonBackOff.setMaxInterval(10_000L);
+
+        DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, infrastructureBackOff);
+        errorHandler.setBackOffFunction((record, ex) ->
+                isInfrastructureFailure(ex) ? null : poisonBackOff);   // null = default back-off
+        errorHandler.addNotRetryableExceptions(NullPointerException.class);
         return errorHandler;
+    }
+
+    /** Transient infra problems that retrying can heal — never worth dead-lettering events for. */
+    private static boolean isInfrastructureFailure(Exception exception) {
+        Throwable cause = exception;
+        while (cause != null) {
+            if (cause instanceof TransientDataAccessException
+                    || cause instanceof RecoverableDataAccessException
+                    || cause instanceof DataAccessResourceFailureException
+                    || cause instanceof CannotCreateTransactionException) {
+                return true;
+            }
+            cause = cause.getCause();
+        }
+        return false;
     }
 
     @Bean

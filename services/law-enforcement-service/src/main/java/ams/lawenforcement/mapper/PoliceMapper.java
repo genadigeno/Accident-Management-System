@@ -15,6 +15,7 @@ public interface PoliceMapper {
     // sequence-generated primary key (it forces Hibernate onto the merge path, crashes batches
     // with StaleObjectStateException, and silently overwrites rows on id collisions).
     @Mapping(target = "id", ignore = true)
+    @Mapping(source = "cacheId", target = "cacheId", qualifiedByName = "charSequenceToString")
     @Mapping(source = "address", target = "address", qualifiedByName = "charSequenceToString")
     @Mapping(source = "latitude", target = "latitude", qualifiedByName = "charSequenceToString")
     @Mapping(source = "longitude", target = "longitude", qualifiedByName = "charSequenceToString")

@@ -8,6 +8,7 @@ import ams.statistics.service.StatisticsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.kafka.listener.BatchListenerFailedException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,8 +26,13 @@ public class StatisticsProcessor {
         log.info("Total messages - {}", records.size());
 
         List<StatisticalModelData> batch = new ArrayList<>();
-        try {
-            for (ConsumerRecord<String, StatisticalModel> rec : records){
+        for (ConsumerRecord<String, StatisticalModel> rec : records) {
+            // A null value means the record could not be deserialized (ErrorHandlingDeserializer).
+            if (rec.value() == null) {
+                statisticsService.saveBatch(batch);
+                throw new BatchListenerFailedException("value could not be deserialized", rec);
+            }
+            try {
                 log.info("Record: value - {}, key - {}", rec.value(), rec.key());
                 //collect in a batch
                 batch.add(StatisticalModelData.builder()
@@ -37,17 +43,19 @@ public class StatisticsProcessor {
                                         .build())
                                 .count(rec.value().getCount())
                         .build());
+            } catch (Exception ex) {
+                log.error("Poison record at {}-{}@{}: {}", rec.topic(), rec.partition(), rec.offset(),
+                        ex.getMessage(), ex);
+                // Save what mapped cleanly, then point the error handler at the exact record: it
+                // retries/dead-letters ONLY this record and resumes after it, instead of retrying
+                // and dead-lettering the entire batch.
+                statisticsService.saveBatch(batch);
+                throw new BatchListenerFailedException("record cannot be processed", ex, rec);
             }
-        } catch (Exception ex) {
-            log.error("Error processing record due to {}", ex.getMessage(), ex);
-            //re-throw an exception to trigger the recoverer
-            throw ex;
-        } finally {
-            log.info("batch size - {}", batch.size());
-            //in case an exception still save a batch we got before the exception
-            statisticsService.saveBatch(batch);
-            log.info("batch saved");
         }
+        log.info("batch size - {}", batch.size());
+        statisticsService.saveBatch(batch);
+        log.info("batch saved");
     }
 
 }
