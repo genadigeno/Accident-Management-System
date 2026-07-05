@@ -2,6 +2,8 @@ package ams.ui.app.service;
 
 import ams.ui.app.dta.AnalyticsSnapshot;
 import ams.ui.app.dta.AnalyticsSnapshot.LocationCount;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -29,7 +31,12 @@ public class AnalyticsService {
 
     private final AtomicLong total = new AtomicLong();
     private final Map<String, AtomicLong> byType = new ConcurrentHashMap<>();
-    private final Map<String, AtomicLong> locations = new ConcurrentHashMap<>();
+    // Bounded: unlimited per-location counters were a slow memory leak under sustained load
+    // (address cardinality is unbounded). The dashboard only shows the top locations, so
+    // evicting the long tail is acceptable — top-N is approximate once eviction kicks in.
+    private final Cache<String, AtomicLong> locations = Caffeine.newBuilder()
+            .maximumSize(10_000)
+            .build();
     private final AtomicLong sensitive = new AtomicLong();
     private final AtomicLong fraud = new AtomicLong();
 
@@ -40,7 +47,7 @@ public class AnalyticsService {
         total.incrementAndGet();
         byType.computeIfAbsent(type == null ? "UNKNOWN" : type, k -> new AtomicLong()).incrementAndGet();
         if (address != null && !address.isBlank()) {
-            locations.computeIfAbsent(address, k -> new AtomicLong()).incrementAndGet();
+            locations.get(address, k -> new AtomicLong()).incrementAndGet();
         }
     }
 
@@ -64,7 +71,7 @@ public class AnalyticsService {
         Map<String, Long> types = new LinkedHashMap<>();
         byType.forEach((k, v) -> types.put(k, v.get()));
 
-        List<LocationCount> top = locations.entrySet().stream()
+        List<LocationCount> top = locations.asMap().entrySet().stream()
                 .sorted(Comparator.comparingLong((Map.Entry<String, AtomicLong> e) -> e.getValue().get()).reversed())
                 .limit(5)
                 .map(e -> new LocationCount(e.getKey(), e.getValue().get()))
