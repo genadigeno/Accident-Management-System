@@ -4,9 +4,11 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
@@ -65,6 +67,10 @@ public class Application {
                     continue;
                 }
                 emptyPolls = 0;
+                // Commit only the offsets of records actually republished. A bare commitSync()
+                // would commit the whole poll — records consumed past --max would be silently
+                // skipped (lost) on the next run.
+                Map<TopicPartition, OffsetAndMetadata> replayedOffsets = new HashMap<>();
                 for (ConsumerRecord<byte[], byte[]> rec : records) {
                     if (max != 0 && replayed >= max) {
                         break;
@@ -73,12 +79,14 @@ public class Application {
                     copyBusinessHeaders(rec, out);
                     if (!dryRun) {
                         producer.send(out);
+                        replayedOffsets.put(new TopicPartition(rec.topic(), rec.partition()),
+                                new OffsetAndMetadata(rec.offset() + 1));
                     }
                     replayed++;
                 }
-                if (!dryRun) {
+                if (!dryRun && !replayedOffsets.isEmpty()) {
                     producer.flush();
-                    consumer.commitSync();
+                    consumer.commitSync(replayedOffsets);
                 }
             }
         }

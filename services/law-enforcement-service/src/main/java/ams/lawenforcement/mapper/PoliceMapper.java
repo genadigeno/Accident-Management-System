@@ -11,6 +11,10 @@ import org.mapstruct.factory.Mappers;
 public interface PoliceMapper {
     PoliceMapper MAPPER = Mappers.getMapper(PoliceMapper.class);
 
+    // The event's `id` is a random, non-unique business value — it must NEVER become the
+    // sequence-generated primary key (it forces Hibernate onto the merge path, crashes batches
+    // with StaleObjectStateException, and silently overwrites rows on id collisions).
+    @Mapping(target = "id", ignore = true)
     @Mapping(source = "address", target = "address", qualifiedByName = "charSequenceToString")
     @Mapping(source = "latitude", target = "latitude", qualifiedByName = "charSequenceToString")
     @Mapping(source = "longitude", target = "longitude", qualifiedByName = "charSequenceToString")
