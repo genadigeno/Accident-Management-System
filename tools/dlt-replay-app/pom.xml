@@ -22,6 +22,13 @@
             <artifactId>kafka-clients</artifactId>
             <version>3.7.1</version>
         </dependency>
+        <!-- Pin slf4j-api to 2.x so it wins over the 1.7.x that kafka-clients pulls in
+             (otherwise slf4j-simple 2.x finds no binding and the tool logs NOTHING). -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.7</version>
+        </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>

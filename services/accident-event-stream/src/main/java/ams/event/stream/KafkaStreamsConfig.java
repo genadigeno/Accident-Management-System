@@ -3,6 +3,7 @@ package ams.event.stream;
 import ams.data.model.AccidentEventModel;
 import ams.data.model.DeserializationErrorResponse;
 import ams.event.stream.handler.AccidentDeserializationErrorRecoverer;
+import ams.event.stream.handler.AccidentStreamsUncaughtExceptionHandler;
 import ams.event.stream.processors.AccidentKStreamProcessor;
 import ams.event.stream.serde.AvroSerde;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
@@ -23,6 +24,7 @@ import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.annotation.EnableKafkaStreams;
 import org.springframework.kafka.annotation.KafkaStreamsDefaultConfiguration;
 import org.springframework.kafka.config.KafkaStreamsConfiguration;
+import org.springframework.kafka.config.StreamsBuilderFactoryBeanConfigurer;
 import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -81,12 +83,19 @@ public class KafkaStreamsConfig {
         return stream;
     }
 
-    /*@Bean
+    /**
+     * Without this, any uncaught processing exception uses the default SHUTDOWN_CLIENT response:
+     * the topology dies silently while the JVM (and its HTTP health endpoint) stay up — the
+     * pipeline is dead but nothing restarts it. REPLACE_THREAD self-heals transient failures;
+     * a rapid failure burst (5 within 1s) still shuts the application down so the orchestrator
+     * can restart it (made visible by {@code KafkaStreamsHealthIndicator}).
+     */
+    @Bean
     public StreamsBuilderFactoryBeanConfigurer configurer() {
         return factoryBean -> factoryBean.setStreamsUncaughtExceptionHandler(
                 new AccidentStreamsUncaughtExceptionHandler(5, 1000)
         );
-    }*/
+    }
 
     @Bean(name = KafkaStreamsDefaultConfiguration.DEFAULT_STREAMS_CONFIG_BEAN_NAME)
     public KafkaStreamsConfiguration kStreamsConfigs() {
