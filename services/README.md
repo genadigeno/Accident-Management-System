@@ -5,7 +5,7 @@ pipeline. One routes, four respond:
 
 ```
                           ┌───────────────────────┐
-   accident.events ─────▶ │ accident-event-stream │──▶ law-enforcement.events ──▶ law-enforcement-service ──▶ PostgreSQL
+  accident.events ─────▶ │ accident-event-stream │──▶ law-enforcement.events ──▶ law-enforcement-service ──▶ PostgreSQL
  (from the bombarder      │       (router)        │──▶ emergency.events ────────▶ emergency-service ────────▶ PostgreSQL
   or the uiapp)           │     Kafka Streams     │──▶ fire-rescue.events ──────▶ firerescue-service ───────▶ PostgreSQL
                           └───────────────────────┘──▶ statistics.events ───────▶ statistics-service ───────▶ PostgreSQL
