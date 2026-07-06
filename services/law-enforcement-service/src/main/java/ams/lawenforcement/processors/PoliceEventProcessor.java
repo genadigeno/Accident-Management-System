@@ -32,7 +32,8 @@ public class PoliceEventProcessor {
                 throw new BatchListenerFailedException("value could not be deserialized", rec);
             }
             try {
-                log.info("Record: value - {}, key - {}", rec.value(), rec.key());
+                // DEBUG: per-record logging at INFO was the single biggest I/O cost under load.
+                log.debug("Record: value - {}, key - {}", rec.value(), rec.key());
                 LawEnforcementAccident entity = PoliceMapper.MAPPER.policeEventModelToPoliceAccident(rec.value());
                 entity.setKafkaTopic(rec.topic());
                 entity.setKafkaPartition(rec.partition());

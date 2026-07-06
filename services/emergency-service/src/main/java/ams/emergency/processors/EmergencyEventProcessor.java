@@ -33,7 +33,8 @@ public class EmergencyEventProcessor {
                 throw new BatchListenerFailedException("value could not be deserialized", rec);
             }
             try {
-                log.info("Record: value - {}, key - {}", rec.value(), rec.key());
+                // DEBUG: per-record logging at INFO was the single biggest I/O cost under load.
+                log.debug("Record: value - {}, key - {}", rec.value(), rec.key());
                 EmergencyAccident entity = EmergencyMapper.MAPPER.emergencyEventModelToEmergencyAccident(rec.value());
                 entity.setKafkaTopic(rec.topic());
                 entity.setKafkaPartition(rec.partition());

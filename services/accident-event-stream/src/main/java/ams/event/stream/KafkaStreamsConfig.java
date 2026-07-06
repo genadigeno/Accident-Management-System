@@ -1,15 +1,14 @@
 package ams.event.stream;
 
 import ams.data.model.AccidentEventModel;
-import ams.data.model.DeserializationErrorResponse;
 import ams.event.stream.handler.AccidentDeserializationErrorRecoverer;
 import ams.event.stream.handler.AccidentStreamsUncaughtExceptionHandler;
 import ams.event.stream.processors.AccidentKStreamProcessor;
 import ams.event.stream.serde.AvroSerde;
-import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.Consumed;
@@ -112,14 +111,18 @@ public class KafkaStreamsConfig {
 
     @Bean
     ConsumerRecordRecoverer recoverer(){
-        return new AccidentDeserializationErrorRecoverer(kafkaTemplate(), accidentEventsTopicDLT);
+        return new AccidentDeserializationErrorRecoverer(dltByteTemplate(), accidentEventsTopicDLT);
     }
 
+    /**
+     * Byte-for-byte producer for the dead-letter topic: undeserializable records must keep
+     * their original payload so they can be inspected and replayed exactly.
+     */
     @Bean
-    public KafkaTemplate<String, DeserializationErrorResponse> kafkaTemplate(){
+    public KafkaTemplate<byte[], byte[]> dltByteTemplate(){
         Map<String, Object> props = kafkaProperties.buildProducerProperties();
-        props.put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl);
-        return new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(props));
+        return new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(
+                props, new ByteArraySerializer(), new ByteArraySerializer()));
     }
 
     @Bean
@@ -192,20 +195,17 @@ public class KafkaStreamsConfig {
                 .build();
     }
 
+    /**
+     * The dead-letter topic must be at least as durable as the business topics — it holds the
+     * records that already failed once. RF 3 / min ISR 2 matches the main topics. (Existing
+     * topics are left untouched; the k8s dev overlay pre-creates it at RF 1.)
+     */
     @Bean
     public NewTopic accidentEventsTopicDlt(){
         return TopicBuilder
                 .name(accidentEventsTopicDLT)
-                .replicas(1)
-                .partitions(1)
-                .build();
-    }
-    @Bean
-    public NewTopic accidentEventsTopicCopied(){
-        return TopicBuilder
-                .name(accidentEventsTopic+".copied")
                 .replicas(3)
-                .partitions(3)
+                .partitions(1)
                 .config(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, "2")
                 .build();
     }

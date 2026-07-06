@@ -29,7 +29,9 @@ public class OverpassHospitalProvider implements HospitalProvider {
             RestClient.Builder builder,
             @Value("${hospital.overpass.url}") String overpassUrl,
             @Value("${hospital.overpass.connect-timeout-ms:3000}") int connectTimeoutMs,
-            @Value("${hospital.overpass.read-timeout-ms:30000}") int readTimeoutMs) {
+            // 5s default: this sits on a dispatcher request path — a slow Overpass must fail
+            // fast (the caller degrades to 502) rather than pin a server thread for 30s.
+            @Value("${hospital.overpass.read-timeout-ms:5000}") int readTimeoutMs) {
 
         this.overpassUrl = overpassUrl;
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();

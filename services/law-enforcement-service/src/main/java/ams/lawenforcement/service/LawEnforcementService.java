@@ -4,6 +4,8 @@ import ams.lawenforcement.bolo.BoloLevel;
 import ams.lawenforcement.repository.LawEnforcementAccident;
 import ams.lawenforcement.repository.LawEnforcementRepository;
 import ams.lawenforcement.repository.LawEnforcementRepository.PartitionOffset;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class LawEnforcementService {
     private final LawEnforcementRepository policeAccidentRepository;
+    private final MeterRegistry meterRegistry;
 
     /**
      * Persists the batch idempotently, in two layers:
@@ -51,7 +54,29 @@ public class LawEnforcementService {
         if (skipped > 0) {
             log.info("idempotency: skipped {} already-consumed record(s)", skipped);
         }
-        policeAccidentRepository.saveAll(dedupeByCacheId(fresh));
+        List<LawEnforcementAccident> persisted = dedupeByCacheId(fresh);
+        policeAccidentRepository.saveAll(persisted);
+        raiseBoloAlerts(persisted);
+    }
+
+    /**
+     * Alerts (metric + log) are raised here — for records that were actually persisted — and
+     * NOT during mapping: side effects in the mapping loop re-fire on every batch retry, which
+     * inflated {@code ams.bolo.alerts} (observed 8 alerts for 2 incidents).
+     */
+    private void raiseBoloAlerts(List<LawEnforcementAccident> persisted) {
+        for (LawEnforcementAccident accident : persisted) {
+            BoloLevel level = accident.getBoloLevel();
+            if (level == null || level == BoloLevel.NONE) {
+                continue;
+            }
+            Counter.builder("ams.bolo.alerts")
+                    .tag("level", level.name())
+                    .description("Number of BOLO alerts raised, by severity")
+                    .register(meterRegistry)
+                    .increment();
+            log.warn("BOLO [{}] raised for description: \"{}\"", level, accident.getDescription());
+        }
     }
 
     /** Drops records whose identity already exists (replays) or repeats within the batch. */

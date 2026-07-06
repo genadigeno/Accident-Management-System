@@ -1,13 +1,12 @@
 package ams.lawenforcement.bolo;
 
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class BoloDetectorTest {
 
-    private final BoloDetector detector = new BoloDetector(new SimpleMeterRegistry());
+    private final BoloDetector detector = new BoloDetector();
 
     @Test
     void critical_on_weapon_keyword() {

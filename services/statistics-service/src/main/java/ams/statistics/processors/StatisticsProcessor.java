@@ -33,7 +33,8 @@ public class StatisticsProcessor {
                 throw new BatchListenerFailedException("value could not be deserialized", rec);
             }
             try {
-                log.info("Record: value - {}, key - {}", rec.value(), rec.key());
+                // DEBUG: per-record logging at INFO was the single biggest I/O cost under load.
+                log.debug("Record: value - {}, key - {}", rec.value(), rec.key());
                 //collect in a batch
                 batch.add(StatisticalModelData.builder()
                                 .id(WindowedId.builder()

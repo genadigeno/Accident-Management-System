@@ -2,16 +2,22 @@ package ams.firerescue;
 
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroDeserializerConfig;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.kafka.common.serialization.Serializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
@@ -23,11 +29,13 @@ import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.RecoverableDataAccessException;
 import org.springframework.dao.TransientDataAccessException;
+import org.springframework.kafka.support.serializer.DelegatingByTypeSerializer;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries;
 import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.util.backoff.ExponentialBackOff;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Slf4j
@@ -129,10 +137,39 @@ public class KafkaConfig {
         return false;
     }
 
+    /**
+     * The dead-letter topic must be at least as durable as the business topics — it holds
+     * records that already failed once. RF 3 / min ISR 2 matches the main topics. (Existing
+     * topics are left untouched; the k8s dev overlay pre-creates it at RF 1.)
+     */
+    @Bean
+    public NewTopic deadLetterTopicDefinition() {
+        return TopicBuilder.name(deadLetterTopic)
+                .partitions(1)
+                .replicas(3)
+                .config(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, "2")
+                .build();
+    }
+
+    /**
+     * Producer used by the dead-letter recoverer. Serializers are selected by payload type:
+     * records that failed DESERIALIZATION are re-published as their original raw bytes
+     * (byte-for-byte, so dlt-replay restores them exactly), while records that failed in the
+     * listener re-serialize through Avro like any normal event. A plain Avro template would
+     * Avro-wrap the raw bytes and corrupt the payload for replay.
+     */
     @Bean
     public KafkaTemplate<Object, Object> kafkaTemplate() {
         Map<String, Object> props = kafkaProperties.buildProducerProperties();
         props.put(KafkaAvroDeserializerConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl);
-        return new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(props));
+        return new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(
+                props, byteAwareAvroSerializer(), byteAwareAvroSerializer()));
+    }
+
+    private static DelegatingByTypeSerializer byteAwareAvroSerializer() {
+        Map<Class<?>, Serializer<?>> delegates = new LinkedHashMap<>();
+        delegates.put(byte[].class, new ByteArraySerializer());
+        delegates.put(Object.class, new KafkaAvroSerializer());
+        return new DelegatingByTypeSerializer(delegates, true);
     }
 }
