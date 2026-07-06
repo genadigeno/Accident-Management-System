@@ -1,0 +1,22 @@
+{
+  "type": "record",
+  "name": "UnitStatusEvent",
+  "namespace": "ams.data.model",
+  "doc": "Lifecycle update of a response unit handling an incident (topic unit.status.events). Emitted by dispatch-service on every transition; consumed for response-time/SLA tracking.",
+  "fields": [
+    {"name": "dispatchId", "type": "string", "doc": "unique id of this dispatch"},
+    {"name": "incidentId", "type": "string", "doc": "the accident's cacheId (business identity)"},
+    {"name": "unitId", "type": "string", "doc": "e.g. AMB-2, POL-1, FIRE-3"},
+    {
+      "name": "unitType",
+      "type": {"type": "enum", "name": "UnitType", "symbols": ["POLICE_CAR", "AMBULANCE", "FIRE_ENGINE"]}
+    },
+    {
+      "name": "status",
+      "type": {"type": "enum", "name": "UnitDispatchStatus", "symbols": ["DISPATCHED", "EN_ROUTE", "ON_SCENE", "CLEARED"]}
+    },
+    {"name": "latitude", "type": "string", "default": "", "doc": "incident latitude"},
+    {"name": "longitude", "type": "string", "default": "", "doc": "incident longitude"},
+    {"name": "timestamp", "type": {"type": "long", "logicalType": "timestamp-millis"}, "doc": "when the transition happened"}
+  ]
+}

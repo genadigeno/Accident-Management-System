@@ -6,7 +6,7 @@
 
     <groupId>io.github.genadigeno</groupId>
     <artifactId>ams-schemas</artifactId>
-    <version>2.3</version>
+    <version>2.4</version>
     <url>https://github.com/genadigeno/ams-schemas</url>
     <name>ams-schemas</name>
     <description>Avro Schemas for AMS</description>
