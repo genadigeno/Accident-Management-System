@@ -44,6 +44,7 @@ spec:
             - { name: FIRERESCUE_URL, value: "http://firerescue-service:38089" }
             - { name: STATISTICS_URL, value: "http://statistics-service:48089" }
             - { name: DISPATCH_URL, value: "http://dispatch-service:58089" }
+            - { name: NOTIFICATION_URL, value: "http://notification-service:60089" }
           # The uiapp has no actuator; the home page is its readiness signal.
           readinessProbe:
             httpGet:

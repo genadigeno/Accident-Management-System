@@ -43,12 +43,13 @@ spec:
               until kafka-topics --bootstrap-server kafka:9092 --list >/dev/null 2>&1; do sleep 3; done
               for t in accident.events emergency.events law-enforcement.events \
                        fire-rescue.events statistics.events accident.events.sensitive \
-                       accident.events.fraud unit.status.events; do
+                       accident.events.fraud unit.status.events bolo.alerts sla.alerts; do
                 kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
                   --topic "$t" --partitions 3 --replication-factor 1 --config min.insync.replicas=1
               done
               for t in accident.events.dlt emergency.events.dlt law-enforcement.events.dlt \
-                       fire-rescue.events.dlt statistics.events.dlt dispatch.events.dlt; do
+                       fire-rescue.events.dlt statistics.events.dlt dispatch.events.dlt \
+                       notification.events.dlt; do
                 kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
                   --topic "$t" --partitions 1 --replication-factor 1 --config min.insync.replicas=1
               done

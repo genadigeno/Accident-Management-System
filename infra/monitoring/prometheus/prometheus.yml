@@ -21,3 +21,5 @@ scrape_configs:
         labels: { service: statistics-service }
       - targets: ["host.docker.internal:58089"]
         labels: { service: dispatch-service }
+      - targets: ["host.docker.internal:60089"]
+        labels: { service: notification-service }

@@ -11,3 +11,4 @@ data:
     CREATE DATABASE ams_firerescue;
     CREATE DATABASE ams_statistics;
     CREATE DATABASE ams_dispatch;
+    CREATE DATABASE ams_notification;

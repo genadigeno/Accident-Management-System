@@ -25,6 +25,7 @@ pipeline. One routes, four respond:
 | [firerescue-service](firerescue-service) | Persists fire incidents; **building-plan** lookup for responders | `38089` | `fire-rescue.events` | `GET /api/v1/buildings/plan` |
 | [statistics-service](statistics-service) | Persists windowed per-type counts; metrics, rollups, trends, CSV reports | `48089` | `statistics.events` | `GET /api/v1/stats/{by-type,summary,recent,hourly,daily,weekly,trend,peak-hours}`, `GET /api/v1/reports/daily.csv` |
 | [dispatch-service](dispatch-service) | CAD core — assigns the nearest available unit per incident, tracks `DISPATCHED → EN_ROUTE → ON_SCENE → CLEARED`, emits `unit.status.events` | `58089` | all three responder topics | `GET /api/v1/units`, `GET /api/v1/dispatches[/active]` |
+| [notification-service](notification-service) | Fans in every alert stream (BOLO / SLA / fraud / geo-fence) → dedup, rate-limit, deliver to channels (log, webhook, …) | `60089` | `bolo.alerts`, `sla.alerts`, `accident.events.fraud`, `accident.events.sensitive` | `GET /api/v1/notifications[/summary]` |
 
 ## The services
 

@@ -21,6 +21,7 @@ resources:
   - firerescue-service.yaml
   - statistics-service.yaml
   - dispatch-service.yaml
+  - notification-service.yaml
   - uiapp.yaml
   # NOTE: stream-bombarder.job.yaml is intentionally NOT included — it is an on-demand Job,
   # applied separately when you want to generate load.
@@ -43,6 +44,8 @@ images:
   - name: ams/statistics-service
     newTag: latest
   - name: ams/dispatch-service
+    newTag: latest
+  - name: ams/notification-service
     newTag: latest
   - name: ams/uiapp
     newTag: latest
