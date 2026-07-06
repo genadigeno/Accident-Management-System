@@ -39,4 +39,34 @@ public class StatisticsController {
     public List<WindowStat> recent(@RequestParam(defaultValue = "50") int limit) {
         return statisticsQueryService.recentWindows(limit);
     }
+
+    // Events per hour for the last N hours (default 24), per accident type
+    @GetMapping("/hourly")
+    public List<StatisticsQueryService.RollupBucket> hourly(@RequestParam(defaultValue = "24") int hours) {
+        return statisticsQueryService.rollup("hour", hours);
+    }
+
+    // Events per day for the last N days (default 30), per accident type
+    @GetMapping("/daily")
+    public List<StatisticsQueryService.RollupBucket> daily(@RequestParam(defaultValue = "30") int days) {
+        return statisticsQueryService.rollup("day", days);
+    }
+
+    // Events per week for the last N weeks (default 12), per accident type
+    @GetMapping("/weekly")
+    public List<StatisticsQueryService.RollupBucket> weekly(@RequestParam(defaultValue = "12") int weeks) {
+        return statisticsQueryService.rollup("week", weeks);
+    }
+
+    // Period-over-period change ("crime rate increased by 20%"); period = hour|day|week
+    @GetMapping("/trend")
+    public StatisticsQueryService.Trend trend(@RequestParam(defaultValue = "day") String period) {
+        return statisticsQueryService.trend(period);
+    }
+
+    // Events per hour of day, busiest first ("peak accident hours: 5 PM - 7 PM")
+    @GetMapping("/peak-hours")
+    public List<StatisticsQueryService.PeakHour> peakHours() {
+        return statisticsQueryService.peakHours();
+    }
 }

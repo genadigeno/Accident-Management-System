@@ -24,7 +24,7 @@ problem — see [Axon 911](https://www.axon.com/solutions/axon-911) and
 | Phase | Scope | Effort | Status |
 |:-----:|-------|:------:|:------:|
 | **1** | **`dispatch-service`** — unit registry, nearest-available assignment, `unit.status.events` lifecycle (`DISPATCHED → EN_ROUTE → ON_SCENE → CLEARED`), built-in movement simulator, call stacking when no unit is free | L | ✅ done |
-| **2** | Emergency **response-time tracking + SLA alerts** (consumes `unit.status.events`); statistics **hourly/daily/weekly rollups, trend %, CSV report** | M | ⬜ |
+| **2** | Emergency **response-time tracking + SLA alerts** (consumes `unit.status.events`); statistics **hourly/daily/weekly rollups, trend %, CSV report** | M | ✅ done |
 | **3** | **`bolo.alerts` topic** + **`notification-service`** (fan-in from bolo/fraud/sensitive/SLA topics → log + webhook channels first, SMTP/Telegram behind adapters; dedup + rate limits) | M | ⬜ |
 | **4** | **`incident-correlation-service`** (geohash cell + time window merges duplicate reports into one incident, `incident.events` lifecycle) + **`citizen-report-gateway`** (public intake API with validation, rate limiting, duplicate-hint) | L | ⬜ |
 | **5** | **`search-service`** on Elasticsearch (index all responder events; full-text + geo + time queries; past-incident correlation API; Kibana) + uiapp **map view & alert panel** | M | ⬜ |

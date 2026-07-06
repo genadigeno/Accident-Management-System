@@ -22,6 +22,12 @@ Read-only REST endpoints over the stored windowed aggregates (default port `4808
 | `GET /api/v1/stats/by-type` | Total event count per accident type, most frequent first |
 | `GET /api/v1/stats/summary` | `{ totalEvents, mostCommonType, byType[] }` |
 | `GET /api/v1/stats/recent?limit=50` | The most recent windowed aggregates (max 1000) |
+| `GET /api/v1/stats/hourly?hours=24` | Events per hour per type ("accidents per hour") |
+| `GET /api/v1/stats/daily?days=30` | Events per day per type |
+| `GET /api/v1/stats/weekly?weeks=12` | Events per week per type |
+| `GET /api/v1/stats/trend?period=day` | Period-over-period change — "crime rate increased by 20%" (`changePercent` is `null` without a baseline) |
+| `GET /api/v1/stats/peak-hours` | Events per hour of day, busiest first — "peak accident hours" |
+| `GET /api/v1/reports/daily.csv?days=30` | Downloadable CSV report for city officials |
 
 ```bash
 curl http://localhost:48089/api/v1/stats/summary

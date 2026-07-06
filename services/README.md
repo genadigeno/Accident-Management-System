@@ -21,9 +21,9 @@ pipeline. One routes, four respond:
 |---------|------|:----:|----------|----------|
 | [accident-event-stream](accident-event-stream) | The brain — routes each incident by `ACCIDENT_TYPE` to the responder topics; geo-fencing, fraud detection, windowed statistics | `8080` | `accident.events` | actuator only |
 | [law-enforcement-service](law-enforcement-service) | Persists police incidents; automatic **BOLO** threat classification | `28089` | `law-enforcement.events` | `GET /api/v1/bolo` |
-| [emergency-service](emergency-service) | Persists ambulance incidents; **nearest-hospital** lookup (OpenStreetMap) | `18089` | `emergency.events` | `GET /api/v1/hospitals/nearby` |
+| [emergency-service](emergency-service) | Persists ambulance incidents; **nearest-hospital** lookup; **response-time/SLA** tracking from `unit.status.events` | `18089` | `emergency.events`, `unit.status.events` | `GET /api/v1/hospitals/nearby`, `GET /api/v1/response-times[/summary]` |
 | [firerescue-service](firerescue-service) | Persists fire incidents; **building-plan** lookup for responders | `38089` | `fire-rescue.events` | `GET /api/v1/buildings/plan` |
-| [statistics-service](statistics-service) | Persists windowed per-type counts; real-time metrics API | `48089` | `statistics.events` | `GET /api/v1/stats/{by-type,summary,recent}` |
+| [statistics-service](statistics-service) | Persists windowed per-type counts; metrics, rollups, trends, CSV reports | `48089` | `statistics.events` | `GET /api/v1/stats/{by-type,summary,recent,hourly,daily,weekly,trend,peak-hours}`, `GET /api/v1/reports/daily.csv` |
 | [dispatch-service](dispatch-service) | CAD core — assigns the nearest available unit per incident, tracks `DISPATCHED → EN_ROUTE → ON_SCENE → CLEARED`, emits `unit.status.events` | `58089` | all three responder topics | `GET /api/v1/units`, `GET /api/v1/dispatches[/active]` |
 
 ## The services
