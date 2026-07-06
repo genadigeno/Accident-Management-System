@@ -11,6 +11,20 @@ topic (`emergency.events.dlt`) so nothing is silently lost.
 
 ## Features
 
+### Response-time & SLA tracking
+
+Consumes **`unit.status.events`** from the [dispatch service](../dispatch-service) and records,
+per dispatch, when the unit was dispatched, en route, on scene, and cleared. On arrival it
+computes the **response time** (dispatched → on scene) and, when it exceeds the SLA
+(`RESPONSE_SLA_SECONDS`, default 15 minutes), flags the row, logs a `WARN` alert, and increments
+`ams.sla.breached{unitType=…}`. Every response is also recorded in the `ams.response.time` timer
+(both visible in Prometheus/Grafana).
+
+```bash
+curl http://localhost:18089/api/v1/response-times           # 50 most recent responses
+curl http://localhost:18089/api/v1/response-times/summary   # totals, avg, breaches — overall + per unit type
+```
+
 ### Nearest-hospital lookup
 
 Finds hospitals near an accident location so responders can be directed to the closest one.
@@ -55,6 +69,8 @@ java -jar target/emergency-service.jar
 | `BOOTSTRAP_SERVERS` | `localhost:9092,localhost:9093` | Kafka brokers |
 | `SCHEMA_REGISTRY_URL` | `http://localhost:8081` | Confluent Schema Registry |
 | `MAIN_TOPIC_NAME` | `emergency.events` | Topic this service consumes |
+| `UNIT_STATUS_TOPIC_NAME` | `unit.status.events` | Unit lifecycle updates (response-time tracking) |
+| `RESPONSE_SLA_SECONDS` | `900` | Response-time SLA (dispatched → on scene) |
 | `DLT_TOPIC_NAME` | `emergency.events.dlt` | Dead-letter topic |
 | `POSTGRES_URL` | `jdbc:postgresql://localhost:5432/accident_management_service` | JDBC URL |
 | `POSTGRES_USER` | `test` | Database user |
