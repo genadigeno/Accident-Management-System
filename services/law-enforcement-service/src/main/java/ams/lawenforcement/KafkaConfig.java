@@ -57,6 +57,9 @@ public class KafkaConfig {
     @Value("${kafka.main.topic-dlt}")
     private String deadLetterTopic;
 
+    @Value("${kafka.bolo-alerts.topic}")
+    private String boloAlertsTopic;
+
     @Bean
     public ConsumerFactory<Object, Object> consumerFactory() {
         Map<String, Object> props = kafkaProperties.buildConsumerProperties();
@@ -135,6 +138,16 @@ public class KafkaConfig {
             cause = cause.getCause();
         }
         return false;
+    }
+
+    /** BOLO alerts for the notification service (and any other subscriber). */
+    @Bean
+    public NewTopic boloAlertsTopicDefinition() {
+        return TopicBuilder.name(boloAlertsTopic)
+                .partitions(3)
+                .replicas(3)
+                .config(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, "2")
+                .build();
     }
 
     /**

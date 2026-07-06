@@ -1,13 +1,18 @@
 package ams.emergency.response;
 
+import ams.data.model.AlertEvent;
+import ams.data.model.AlertSeverity;
 import ams.data.model.UnitStatusEvent;
 import ams.emergency.response.ResponseTimeRepository.UnitTypeStats;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -26,9 +31,13 @@ public class ResponseTimeService {
 
     private final ResponseTimeRepository repository;
     private final MeterRegistry meterRegistry;
+    private final KafkaTemplate<Object, Object> kafkaTemplate;
 
     @Value("${response.sla-seconds:900}")
     private long slaSeconds;
+
+    @Value("${kafka.sla-alerts.topic}")
+    private String slaAlertsTopic;
 
     @Transactional
     public void apply(UnitStatusEvent event) {
@@ -62,6 +71,36 @@ public class ResponseTimeService {
             meterRegistry.counter("ams.sla.breached", "unitType", row.getUnitType().name()).increment();
             log.warn("SLA BREACH: {} took {}s (> {}s) to reach incident {} at dispatch {}",
                     row.getUnitId(), seconds, slaSeconds, row.getIncidentId(), row.getDispatchId());
+            publishAfterCommit(slaAlert(row, seconds));
+        }
+    }
+
+    private AlertEvent slaAlert(ResponseTime row, long seconds) {
+        return AlertEvent.newBuilder()
+                .setSource("SLA")
+                // twice over the SLA is an operational emergency of its own
+                .setSeverity(seconds > slaSeconds * 2 ? AlertSeverity.CRITICAL : AlertSeverity.HIGH)
+                .setTitle("Response SLA breached (" + row.getUnitType() + ")")
+                .setMessage("Unit " + row.getUnitId() + " took " + seconds + "s (limit " + slaSeconds
+                        + "s) to reach incident " + row.getIncidentId())
+                .setIncidentId(row.getIncidentId())
+                .setDedupKey("SLA:" + row.getDispatchId())
+                .setTimestamp(Instant.now())
+                .build();
+    }
+
+    /** Publish only once the surrounding transaction commits — no phantom alerts on rollback. */
+    private void publishAfterCommit(AlertEvent alert) {
+        Runnable send = () -> kafkaTemplate.send(slaAlertsTopic, alert.getIncidentId().toString(), alert);
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    send.run();
+                }
+            });
+        } else {
+            send.run();
         }
     }
 

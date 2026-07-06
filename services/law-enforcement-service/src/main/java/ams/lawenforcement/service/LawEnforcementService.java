@@ -1,5 +1,7 @@
 package ams.lawenforcement.service;
 
+import ams.data.model.AlertEvent;
+import ams.data.model.AlertSeverity;
 import ams.lawenforcement.bolo.BoloLevel;
 import ams.lawenforcement.repository.LawEnforcementAccident;
 import ams.lawenforcement.repository.LawEnforcementRepository;
@@ -8,8 +10,14 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+import java.time.Instant;
 
 import java.util.HashSet;
 import java.util.List;
@@ -24,6 +32,10 @@ import java.util.stream.Collectors;
 public class LawEnforcementService {
     private final LawEnforcementRepository policeAccidentRepository;
     private final MeterRegistry meterRegistry;
+    private final KafkaTemplate<Object, Object> kafkaTemplate;
+
+    @Value("${kafka.bolo-alerts.topic}")
+    private String boloAlertsTopic;
 
     /**
      * Persists the batch idempotently, in two layers:
@@ -60,9 +72,11 @@ public class LawEnforcementService {
     }
 
     /**
-     * Alerts (metric + log) are raised here — for records that were actually persisted — and
-     * NOT during mapping: side effects in the mapping loop re-fire on every batch retry, which
-     * inflated {@code ams.bolo.alerts} (observed 8 alerts for 2 incidents).
+     * Alerts (metric + log + {@code bolo.alerts} event for the notification service) are raised
+     * here — for records that were actually persisted — and NOT during mapping: side effects in
+     * the mapping loop re-fire on every batch retry, which inflated {@code ams.bolo.alerts}
+     * (observed 8 alerts for 2 incidents). The event is published only after the transaction
+     * commits, so a rollback can never leak a phantom alert.
      */
     private void raiseBoloAlerts(List<LawEnforcementAccident> persisted) {
         for (LawEnforcementAccident accident : persisted) {
@@ -76,6 +90,35 @@ public class LawEnforcementService {
                     .register(meterRegistry)
                     .increment();
             log.warn("BOLO [{}] raised for description: \"{}\"", level, accident.getDescription());
+            publishAfterCommit(boloAlert(accident, level));
+        }
+    }
+
+    private AlertEvent boloAlert(LawEnforcementAccident accident, BoloLevel level) {
+        String incidentId = accident.getCacheId() != null ? accident.getCacheId() : "";
+        return AlertEvent.newBuilder()
+                .setSource("BOLO")
+                .setSeverity(level == BoloLevel.CRITICAL ? AlertSeverity.CRITICAL : AlertSeverity.HIGH)
+                .setTitle("BOLO " + level + (level == BoloLevel.CRITICAL
+                        ? " — notify SWAT / counter-terrorism" : " — broadcast to patrol cars"))
+                .setMessage("\"" + accident.getDescription() + "\" at " + accident.getAddress())
+                .setIncidentId(incidentId)
+                .setDedupKey("BOLO:" + incidentId + ":" + level)
+                .setTimestamp(Instant.now())
+                .build();
+    }
+
+    private void publishAfterCommit(AlertEvent alert) {
+        Runnable send = () -> kafkaTemplate.send(boloAlertsTopic, alert.getIncidentId().toString(), alert);
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    send.run();
+                }
+            });
+        } else {
+            send.run();
         }
     }
 

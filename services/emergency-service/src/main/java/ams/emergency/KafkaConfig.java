@@ -59,6 +59,9 @@ public class KafkaConfig {
     @Value("${kafka.main.topic-dlt}")
     private String deadLetterTopic;
 
+    @Value("${kafka.sla-alerts.topic}")
+    private String slaAlertsTopic;
+
     @Bean
     public ConsumerFactory<Object, Object> consumerFactory() {
         Map<String, Object> consumerProperties = kafkaProperties.buildConsumerProperties();
@@ -141,6 +144,16 @@ public class KafkaConfig {
             cause = cause.getCause();
         }
         return false;
+    }
+
+    /** Response-SLA breach alerts for the notification service (and any other subscriber). */
+    @Bean
+    public NewTopic slaAlertsTopicDefinition() {
+        return TopicBuilder.name(slaAlertsTopic)
+                .partitions(3)
+                .replicas(3)
+                .config(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, "2")
+                .build();
     }
 
     /**
