@@ -166,6 +166,10 @@ public class Application {
         // Unique transactional id per instance so several bombarders can run in parallel.
         props.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "stream-bombarder-tx-" + UUID.randomUUID());
         props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+        // A hard-killed instance leaves an open transaction that blocks read_committed
+        // consumers on those partitions until it times out — keep that window short
+        // (default is 60s).
+        props.put(ProducerConfig.TRANSACTION_TIMEOUT_CONFIG, 10_000);
         props.put("schema.registry.url", config.schemaRegistryUrl());
         return new KafkaProducer<>(props);
     }

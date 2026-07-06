@@ -40,3 +40,10 @@ reached), commits its offsets, and exits — so re-running it won't replay the s
 
 > ⚠️ Inspect before replaying. If records are in the DLT because of a bug that still exists, they
 > will just fail again. Use `--dry-run` first to see how many are there.
+
+## Delivery semantics
+
+Replay is **at-least-once**: republish and offset commit are two steps, so a crash between them
+can replay a record twice on the next run. That is safe in AMS — the consumer services
+deduplicate by the accident's business identity (`cacheId`), so a doubly-replayed record never
+creates a duplicate row.

@@ -60,10 +60,20 @@ public class Application {
 
             consumer.subscribe(List.of(sourceTopic));
             int emptyPolls = 0;
+            int assignmentWaits = 0;
             while (emptyPolls < 3 && (max == 0 || replayed < max)) {
                 ConsumerRecords<byte[], byte[]> records = consumer.poll(Duration.ofSeconds(2));
                 if (records.isEmpty()) {
-                    emptyPolls++;
+                    // Empty polls BEFORE the group assigns partitions are just a slow rebalance,
+                    // not a drained topic — counting them caused a false "0 replayed" success.
+                    if (consumer.assignment().isEmpty()) {
+                        if (++assignmentWaits >= 30) {
+                            log.error("no partition assignment after ~60s — is the topic/broker reachable? aborting");
+                            break;
+                        }
+                    } else {
+                        emptyPolls++;
+                    }
                     continue;
                 }
                 emptyPolls = 0;
