@@ -8,7 +8,11 @@ const stompClient = new StompJs.Client({ brokerURL: WS_URL, reconnectDelay: 3000
 
 stompClient.onConnect = () => {
     setStatus(true);
-    stompClient.subscribe('/topic/events', (msg) => onEvent(JSON.parse(msg.body)));
+    // The backend batches the live feed: each frame is an ARRAY of events (flushed every 250ms).
+    stompClient.subscribe('/topic/events', (msg) => {
+        const body = JSON.parse(msg.body);
+        (Array.isArray(body) ? body : [body]).forEach(onEvent);
+    });
     stompClient.subscribe('/topic/send-status', (msg) => onBatch(JSON.parse(msg.body)));
     stompClient.subscribe('/topic/service-discovery', (msg) => onServices(JSON.parse(msg.body)));
     stompClient.subscribe('/topic/analytics', (msg) => onAnalytics(JSON.parse(msg.body)));
@@ -52,6 +56,10 @@ function prependRow(e) {
 const batches = {};
 
 function onBatch(b) {
+    // Guard against out-of-order delivery: the periodic in-flight snapshot can arrive AFTER
+    // the final COMPLETED update — accepting it would stick the row at IN_PROGRESS forever.
+    const prev = batches[b.id];
+    if (prev && prev.status !== 'IN_PROGRESS' && b.status === 'IN_PROGRESS') return;
     batches[b.id] = b;
     renderBatches();
 }

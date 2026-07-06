@@ -3,6 +3,7 @@ package ams.ui.app.discovery;
 import ams.ui.app.config.DiscoveryProperties;
 import ams.ui.app.dta.ServiceHealthView;
 import ams.ui.app.service.RegistratorService;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -11,13 +12,20 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Active service discovery: on a fixed schedule, probes each monitored service's
  * {@code /actuator/health}, measures latency, and classifies it UP / DEGRADED / DOWN. The
  * resulting snapshot is stored in the registry and pushed to the dashboard over WebSocket
  * ({@code /topic/service-discovery}).
+ *
+ * <p>Probes run in parallel: sequentially, one hung service (2s timeout each) delayed every
+ * other probe and could overrun the whole polling cycle.
  */
 @Slf4j
 @Component
@@ -31,12 +39,25 @@ public class ServiceCheck {
     private final SimpMessagingTemplate messagingTemplate;
     private final RestClient discoveryRestClient;
 
+    private final ExecutorService probePool = Executors.newFixedThreadPool(5, runnable -> {
+        Thread thread = new Thread(runnable, "discovery-probe");
+        thread.setDaemon(true);
+        return thread;
+    });
+
     @Scheduled(fixedRateString = "${discovery.poll-interval-ms:5000}")
     public void pollAll() {
-        for (Map.Entry<String, String> target : registratorService.targets().entrySet()) {
-            registratorService.updateHealth(probe(target.getKey(), target.getValue()));
-        }
+        List<CompletableFuture<ServiceHealthView>> probes = registratorService.targets().entrySet().stream()
+                .map(target -> CompletableFuture.supplyAsync(
+                        () -> probe(target.getKey(), target.getValue()), probePool))
+                .toList();
+        probes.forEach(future -> registratorService.updateHealth(future.join()));
         messagingTemplate.convertAndSend(TOPIC, registratorService.snapshot());
+    }
+
+    @PreDestroy
+    void shutdown() {
+        probePool.shutdownNow();
     }
 
     private ServiceHealthView probe(String name, String baseUrl) {

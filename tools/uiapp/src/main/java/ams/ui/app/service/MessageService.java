@@ -16,8 +16,10 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -27,7 +29,12 @@ public class MessageService {
     private final KafkaTemplate<String, AccidentEventModel> kafkaTemplate;
     private final SendBatchRegistry batchRegistry;
     private final Random random = new Random();
-    private final ExecutorService dispatchExecutor = Executors.newFixedThreadPool(3);
+    // Bounded queue + caller-runs: under a flood of generate requests the REST thread dispatches
+    // inline (natural backpressure) instead of queueing batches without limit on the heap.
+    private final ExecutorService dispatchExecutor = new ThreadPoolExecutor(
+            3, 3, 0L, TimeUnit.MILLISECONDS,
+            new ArrayBlockingQueue<>(50),
+            new ThreadPoolExecutor.CallerRunsPolicy());
 
     @Value("${topic.config.source}")
     private String topicName;

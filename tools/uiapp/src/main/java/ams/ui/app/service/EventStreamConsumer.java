@@ -6,35 +6,68 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 /**
- * Consumes the live accident event stream and forwards each event to connected dashboard
- * browsers over WebSocket ({@code /topic/events}), while feeding the {@link AnalyticsService}.
- * Also tallies the downstream sensitive-zone and fraud signals for the analytics panel.
+ * Consumes the live accident event stream, feeds the {@link AnalyticsService}, and forwards
+ * events to connected dashboard browsers over WebSocket ({@code /topic/events}).
+ *
+ * <p>Events are batched: sending one STOMP frame per event melted the in-memory broker and the
+ * browser at load-test rates (thousands of events/second). Instead, events are buffered and
+ * flushed as ONE array frame every {@value #FLUSH_INTERVAL_MS}ms, capped at the most recent
+ * {@value #MAX_EVENTS_PER_FLUSH} — the feed only displays the latest 50 anyway, and the
+ * analytics counters are fed per event regardless of what is dropped from the feed.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class EventStreamConsumer {
 
+    static final int FLUSH_INTERVAL_MS = 250;
+    static final int MAX_EVENTS_PER_FLUSH = 200;
+
     private final SimpMessagingTemplate messagingTemplate;
     private final AnalyticsService analyticsService;
+
+    private final ConcurrentLinkedQueue<AccidentEventDto> pending = new ConcurrentLinkedQueue<>();
 
     @KafkaListener(topics = "${topic.config.source}", groupId = "${spring.kafka.consumer.group-id}")
     public void onEvent(AccidentEventModel event) {
         String type = event.getType() != null ? event.getType().name() : "UNKNOWN";
         String address = str(event.getLocation() != null ? event.getLocation().getAddress() : null);
-        AccidentEventDto dto = new AccidentEventDto(
+        analyticsService.recordEvent(type, address);
+        pending.add(new AccidentEventDto(
                 str(event.getCacheId()),
                 type,
                 address,
                 str(event.getLocation() != null ? event.getLocation().getLatitude() : null),
                 str(event.getLocation() != null ? event.getLocation().getLongitude() : null),
                 event.getDate() != null ? event.getDate().toString() : "",
-                System.currentTimeMillis());
-        messagingTemplate.convertAndSend("/topic/events", dto);
-        analyticsService.recordEvent(type, address);
+                System.currentTimeMillis()));
+    }
+
+    /** Drains the buffer and pushes one array frame; keeps only the newest events under load. */
+    @Scheduled(fixedRate = FLUSH_INTERVAL_MS)
+    public void flush() {
+        if (pending.isEmpty()) {
+            return;
+        }
+        List<AccidentEventDto> drained = new ArrayList<>();
+        AccidentEventDto dto;
+        while ((dto = pending.poll()) != null) {
+            drained.add(dto);
+        }
+        if (drained.size() > MAX_EVENTS_PER_FLUSH) {
+            log.debug("live feed: dropping {} old event(s) from an oversized flush",
+                    drained.size() - MAX_EVENTS_PER_FLUSH);
+            drained = drained.subList(drained.size() - MAX_EVENTS_PER_FLUSH, drained.size());
+        }
+        messagingTemplate.convertAndSend("/topic/events", drained);
     }
 
     @KafkaListener(topics = "${topic.config.sensitive}", groupId = "${spring.kafka.consumer.group-id}-sensitive")
