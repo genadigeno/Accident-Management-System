@@ -19,3 +19,5 @@ scrape_configs:
         labels: { service: fire-rescue-service }
       - targets: ["host.docker.internal:48089"]
         labels: { service: statistics-service }
+      - targets: ["host.docker.internal:58089"]
+        labels: { service: dispatch-service }

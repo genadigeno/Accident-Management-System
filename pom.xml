@@ -28,6 +28,7 @@
         <module>services/law-enforcement-service</module>
         <module>services/firerescue-service</module>
         <module>services/statistics-service</module>
+        <module>services/dispatch-service</module>
         <module>tools/stream-bombarder-app</module>
         <module>tools/dlt-replay-app</module>
         <module>tools/uiapp</module>

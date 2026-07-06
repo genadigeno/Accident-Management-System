@@ -24,6 +24,7 @@ pipeline. One routes, four respond:
 | [emergency-service](emergency-service) | Persists ambulance incidents; **nearest-hospital** lookup (OpenStreetMap) | `18089` | `emergency.events` | `GET /api/v1/hospitals/nearby` |
 | [firerescue-service](firerescue-service) | Persists fire incidents; **building-plan** lookup for responders | `38089` | `fire-rescue.events` | `GET /api/v1/buildings/plan` |
 | [statistics-service](statistics-service) | Persists windowed per-type counts; real-time metrics API | `48089` | `statistics.events` | `GET /api/v1/stats/{by-type,summary,recent}` |
+| [dispatch-service](dispatch-service) | CAD core — assigns the nearest available unit per incident, tracks `DISPATCHED → EN_ROUTE → ON_SCENE → CLEARED`, emits `unit.status.events` | `58089` | all three responder topics | `GET /api/v1/units`, `GET /api/v1/dispatches[/active]` |
 
 ## The services
 

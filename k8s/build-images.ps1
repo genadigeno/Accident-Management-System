@@ -10,6 +10,7 @@ $apps = @(
   @{ module = "services/law-enforcement-service"; name = "law-enforcement-service" },
   @{ module = "services/firerescue-service";      name = "firerescue-service" },
   @{ module = "services/statistics-service";      name = "statistics-service" },
+  @{ module = "services/dispatch-service";        name = "dispatch-service" },
   @{ module = "tools/uiapp";                      name = "uiapp" },
   @{ module = "tools/stream-bombarder-app";       name = "stream-bombarder" }
 )

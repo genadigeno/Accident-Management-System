@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dispatch-service
+  labels:
+    app: dispatch-service
+spec:
+  selector:
+    app: dispatch-service
+  ports:
+    - name: http
+      port: 58089
+      targetPort: 58089
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dispatch-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dispatch-service
+  template:
+    metadata:
+      labels:
+        app: dispatch-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port: "58089"
+    spec:
+      containers:
+        - name: dispatch-service
+          image: ams/dispatch-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 58089
+          envFrom:
+            - configMapRef:
+                name: ams-config
+          env:
+            - { name: SERVER_PORT, value: "58089" }
+            - { name: POSTGRES_URL, value: "jdbc:postgresql://postgres:5432/ams_dispatch" }
+            - name: POSTGRES_USER
+              valueFrom: { secretKeyRef: { name: ams-db, key: POSTGRES_USER } }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: ams-db, key: POSTGRES_PASSWORD } }
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 58089
+            initialDelaySeconds: 25
+            periodSeconds: 10
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 58089
+            initialDelaySeconds: 45
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              memory: "1Gi"

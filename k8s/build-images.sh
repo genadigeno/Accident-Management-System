@@ -12,6 +12,7 @@ apps=(
   "services/law-enforcement-service:law-enforcement-service"
   "services/firerescue-service:firerescue-service"
   "services/statistics-service:statistics-service"
+  "services/dispatch-service:dispatch-service"
   "tools/uiapp:uiapp"
   "tools/stream-bombarder-app:stream-bombarder"
 )

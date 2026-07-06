@@ -20,6 +20,7 @@ resources:
   - law-enforcement-service.yaml
   - firerescue-service.yaml
   - statistics-service.yaml
+  - dispatch-service.yaml
   - uiapp.yaml
   # NOTE: stream-bombarder.job.yaml is intentionally NOT included — it is an on-demand Job,
   # applied separately when you want to generate load.
@@ -40,6 +41,8 @@ images:
   - name: ams/firerescue-service
     newTag: latest
   - name: ams/statistics-service
+    newTag: latest
+  - name: ams/dispatch-service
     newTag: latest
   - name: ams/uiapp
     newTag: latest
