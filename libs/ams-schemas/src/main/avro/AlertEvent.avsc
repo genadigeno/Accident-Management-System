@@ -1,0 +1,18 @@
+{
+  "type": "record",
+  "name": "AlertEvent",
+  "namespace": "ams.data.model",
+  "doc": "A structured operational alert (BOLO, SLA breach, ...) published for the notification service to fan out. dedupKey is assigned by the producer, which knows the alert's identity best.",
+  "fields": [
+    {"name": "source", "type": "string", "doc": "e.g. BOLO, SLA"},
+    {
+      "name": "severity",
+      "type": {"type": "enum", "name": "AlertSeverity", "symbols": ["CRITICAL", "HIGH", "MEDIUM", "INFO"]}
+    },
+    {"name": "title", "type": "string"},
+    {"name": "message", "type": "string"},
+    {"name": "incidentId", "type": "string", "default": "", "doc": "the accident's cacheId when known"},
+    {"name": "dedupKey", "type": "string", "doc": "stable identity of this alert; replays with the same key are suppressed"},
+    {"name": "timestamp", "type": {"type": "long", "logicalType": "timestamp-millis"}}
+  ]
+}
