@@ -1,0 +1,20 @@
+{
+  "type": "record",
+  "name": "EnrichedAccidentEvent",
+  "namespace": "ams.data.model",
+  "doc": "A reported incident enriched with context (weather at the location, district) by the enrichment-service, published to accident.events.enriched. Flattened (no shared named types) so it is an independent downstream contract.",
+  "fields": [
+    {"name": "cacheId", "type": "string"},
+    {"name": "type", "type": "string"},
+    {"name": "date", "type": "string", "default": ""},
+    {"name": "address", "type": "string", "default": ""},
+    {"name": "latitude", "type": "string", "default": ""},
+    {"name": "longitude", "type": "string", "default": ""},
+    {"name": "description", "type": "string", "default": ""},
+    {"name": "district", "type": "string", "default": "", "doc": "resolved district / area label"},
+    {"name": "weatherCondition", "type": "string", "default": "unknown", "doc": "e.g. clear, rain, snow, unknown"},
+    {"name": "temperatureC", "type": "double", "default": -999.0, "doc": "-999 = unavailable"},
+    {"name": "precipitationMm", "type": "double", "default": -1.0, "doc": "-1 = unavailable"},
+    {"name": "enrichedAt", "type": {"type": "long", "logicalType": "timestamp-millis"}}
+  ]
+}
