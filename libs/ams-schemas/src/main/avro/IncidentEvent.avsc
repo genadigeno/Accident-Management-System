@@ -1,0 +1,23 @@
+{
+  "type": "record",
+  "name": "IncidentEvent",
+  "namespace": "ams.data.model",
+  "doc": "Lifecycle of a CORRELATED incident (topic incident.events): many citizen reports of the same real-world event are merged into one incident by the correlation service (same accident type, ~150m grid cell, rolling time window).",
+  "fields": [
+    {"name": "incidentId", "type": "string"},
+    {
+      "name": "status",
+      "type": {"type": "enum", "name": "IncidentStatus", "symbols": ["OPENED", "UPDATED", "CLOSED"]}
+    },
+    {
+      "name": "accidentType",
+      "type": {"type": "enum", "name": "AccidentType", "symbols": ["CRIMINAL", "CAR_ACCIDENT", "OTHER_ACCIDENT", "FIRE_ACCIDENT"]}
+    },
+    {"name": "address", "type": "string", "default": "", "doc": "first report's address"},
+    {"name": "latitude", "type": "string", "default": ""},
+    {"name": "longitude", "type": "string", "default": ""},
+    {"name": "reportCount", "type": "int"},
+    {"name": "lastReportId", "type": "string", "default": "", "doc": "cacheId of the report that caused this update"},
+    {"name": "timestamp", "type": {"type": "long", "logicalType": "timestamp-millis"}}
+  ]
+}
