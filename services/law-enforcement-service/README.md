@@ -28,6 +28,21 @@ Micrometer counter `ams.bolo.alerts{level=…}` is incremented (visible in Prome
 curl http://localhost:28089/api/v1/bolo      # 50 most recent HIGH + CRITICAL incidents
 ```
 
+### Crime hotspots & forecast
+
+Geographic analytics over the persisted incidents: the busiest ~1 km cells, and a lightweight
+**EWMA forecast** of each hotspot's next-day crime count (an exponentially-weighted moving
+average over the daily series — the honest baseline; a real model can replace it behind the
+service).
+
+```bash
+curl "http://localhost:28089/api/v1/crime/hotspots?days=30&limit=20"
+# [ { "latitude":41.70, "longitude":44.80, "total":8, "boloCount":3, "sampleAddress":"..." }, ... ]
+
+curl "http://localhost:28089/api/v1/crime/forecast?days=30&limit=10&alpha=0.5"
+# [ { "latitude":41.70, "longitude":44.80, "recentTotal":8, "dailyCounts":[...], "predictedNextDay":1.6 }, ... ]
+```
+
 ## Build
 
 ```bash

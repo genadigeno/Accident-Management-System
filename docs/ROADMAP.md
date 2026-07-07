@@ -28,7 +28,7 @@ problem — see [Axon 911](https://www.axon.com/solutions/axon-911) and
 | **3** | **`bolo.alerts` topic** + **`notification-service`** (fan-in from bolo/fraud/sensitive/SLA topics → log + webhook channels first, SMTP/Telegram behind adapters; dedup + rate limits) | M | ✅ done |
 | **4** | **`incident-correlation-service`** (grid cell + time window merges duplicate reports into one incident, `incident.events` lifecycle) + **`citizen-report-gateway`** (public intake API with validation, API keys, rate limiting, duplicate-hint) | L | ✅ done |
 | **5** | **`search-service`** on Elasticsearch (index all incidents; full-text + geo + time queries; past-incident correlation API; Kibana-ready) + uiapp **map view & alert panel** | M | ✅ done |
-| **6** | **`enrichment-service`** (weather via Open-Meteo, district via reverse geocoding), fire **hydrant lookup** (Overpass), **real building-plan DB**, crime **hotspot API**, ML hotspot baseline (EWMA/Poisson) | M–L | ⬜ |
+| **6** | **`enrichment-service`** (weather via Open-Meteo, district via a pluggable resolver), fire **hydrant lookup** (Overpass), **real building-plan DB**, crime **hotspot API**, ML hotspot baseline (EWMA) | M–L | ✅ done |
 
 ---
 

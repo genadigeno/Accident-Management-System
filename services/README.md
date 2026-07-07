@@ -22,7 +22,7 @@ on top:
 | Service | Role | Port | Consumes | Key APIs |
 |---------|------|:----:|----------|----------|
 | [accident-event-stream](accident-event-stream) | The brain — routes each incident by `ACCIDENT_TYPE` to the responder topics; geo-fencing, fraud detection, windowed statistics | `8080` | `accident.events` | actuator only |
-| [law-enforcement-service](law-enforcement-service) | Persists police incidents; automatic **BOLO** threat classification | `28089` | `law-enforcement.events` | `GET /api/v1/bolo` |
+| [law-enforcement-service](law-enforcement-service) | Persists police incidents; automatic **BOLO** threat classification; **crime hotspots + EWMA forecast** | `28089` | `law-enforcement.events` | `GET /api/v1/bolo`, `GET /api/v1/crime/{hotspots,forecast}` |
 | [emergency-service](emergency-service) | Persists ambulance incidents; **nearest-hospital** lookup; **response-time/SLA** tracking from `unit.status.events` | `18089` | `emergency.events`, `unit.status.events` | `GET /api/v1/hospitals/nearby`, `GET /api/v1/response-times[/summary]` |
 | [firerescue-service](firerescue-service) | Persists fire incidents; **building-plan** lookup (DB-backed + stub fallback, importable) and **nearby-hydrant** lookup | `38089` | `fire-rescue.events` | `GET/POST /api/v1/buildings/plan`, `GET /api/v1/hydrants/nearby` |
 | [statistics-service](statistics-service) | Persists windowed per-type counts; metrics, rollups, trends, CSV reports | `48089` | `statistics.events` | `GET /api/v1/stats/{by-type,summary,recent,hourly,daily,weekly,trend,peak-hours}`, `GET /api/v1/reports/daily.csv` |
