@@ -3,6 +3,8 @@ package ams.ui.app.discovery;
 import ams.ui.app.config.DiscoveryProperties;
 import ams.ui.app.dta.ServiceHealthView;
 import ams.ui.app.service.RegistratorService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +15,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -38,6 +39,7 @@ public class ServiceCheck {
     private final DiscoveryProperties properties;
     private final SimpMessagingTemplate messagingTemplate;
     private final RestClient discoveryRestClient;
+    private final ObjectMapper objectMapper;
 
     private final ExecutorService probePool = Executors.newFixedThreadPool(5, runnable -> {
         Thread thread = new Thread(runnable, "discovery-probe");
@@ -84,11 +86,29 @@ public class ServiceCheck {
                 status = "DOWN";
                 detail = "health not UP (http " + code + ")";
             }
-            return new ServiceHealthView(name, baseUrl, status, latency, code, System.currentTimeMillis(), detail);
+            // Throughput counters (only the event-consuming services expose these; others → null).
+            Long received = code == 200 ? counter(baseUrl, "ams.events.received") : null;
+            Long processed = code == 200 ? counter(baseUrl, "ams.events.processed") : null;
+            return new ServiceHealthView(name, baseUrl, status, latency, code,
+                    System.currentTimeMillis(), detail, received, processed);
         } catch (Exception ex) {
             long latency = System.currentTimeMillis() - start;
-            return new ServiceHealthView(name, baseUrl, "DOWN", latency, null,
+            return ServiceHealthView.of(name, baseUrl, "DOWN", latency, null,
                     System.currentTimeMillis(), ex.getClass().getSimpleName());
+        }
+    }
+
+    /** Reads a Micrometer counter from a service's actuator; null if the service doesn't expose it. */
+    private Long counter(String baseUrl, String metric) {
+        try {
+            String body = discoveryRestClient.get()
+                    .uri(baseUrl + "/actuator/metrics/" + metric)
+                    .retrieve()
+                    .body(String.class);
+            JsonNode value = objectMapper.readTree(body).path("measurements").path(0).path("value");
+            return value.isNumber() ? value.asLong() : null;
+        } catch (Exception e) {
+            return null;   // metric not exposed by this service
         }
     }
 }

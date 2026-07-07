@@ -178,10 +178,14 @@ function batchRow(b) {
 function onServices(list) {
     const tbody = document.getElementById('services');
     if (!Array.isArray(list) || !list.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-muted small">No services.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-muted small">No services.</td></tr>';
         return;
     }
     tbody.innerHTML = list.map(serviceRow).join('');
+}
+
+function fmtCount(n) {
+    return (n == null) ? '<span class="text-muted">—</span>' : Number(n).toLocaleString();
 }
 
 function serviceRow(s) {
@@ -194,6 +198,8 @@ function serviceRow(s) {
         + '<td><span class="badge text-bg-' + color + '">' + s.status + '</span></td>'
         + '<td>' + latency + '</td>'
         + '<td>' + (s.httpStatus != null ? s.httpStatus : '—') + '</td>'
+        + '<td class="text-end">' + fmtCount(s.received) + '</td>'
+        + '<td class="text-end">' + fmtCount(s.processed) + '</td>'
         + '<td>' + checked + detail + '</td>'
         + '</tr>';
 }
@@ -258,21 +264,78 @@ function escapeHtml(s) {
         ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// ---------------- System capacity ----------------
+function loadSystem() {
+    fetch(BACKEND + '/api/v1/system').then((r) => r.json()).then(renderSystem).catch(() => {});
+}
+
+function sysTile(value, label, accent) {
+    const style = accent ? ' style="color:' + accent + '"' : '';
+    return '<div class="col"><div class="mini-tile text-center">'
+        + '<div class="mini-num"' + style + '>' + value + '</div>'
+        + '<div class="mini-label">' + label + '</div></div></div>';
+}
+
+function renderSystem(s) {
+    const el = document.getElementById('system');
+    if (!el) return;
+    const r = s.recommendations;
+    el.innerHTML =
+        '<div class="text-muted small mb-2">' + escapeHtml(s.os) + ' · ' + escapeHtml(s.arch) + '</div>'
+        + '<div class="row g-3 mb-3">'
+        + sysTile(s.cpuThreads, 'CPU threads')
+        + sysTile(s.totalRamGb + ' GB', 'total RAM')
+        + sysTile(s.freeRamGb + ' GB', 'free RAM')
+        + sysTile(s.jvmMaxHeapMb + ' MB', 'JVM max heap')
+        + (s.cpuLoadPct != null ? sysTile(s.cpuLoadPct + '%', 'CPU load') : '')
+        + '</div>'
+        + '<div class="fw-semibold small mb-2" style="color:var(--ams-total)">Recommendations</div>'
+        + '<div class="row g-3">'
+        + sysTile(Number(r.maxServiceInstances).toLocaleString(), 'max service instances', 'var(--ams-car)')
+        + sysTile(r.recommendedConcurrentConsumers, 'consumers / core', 'var(--ams-car)')
+        + '<div class="col-md-6"><div class="mini-tile h-100 d-flex flex-column justify-content-center">'
+        + '<div class="fw-semibold small" style="color:var(--ams-fire)">' + escapeHtml(r.estimatedThroughput) + '</div>'
+        + '<div class="mini-label">estimated sustained throughput</div></div></div>'
+        + '</div>'
+        + '<div class="text-muted small mt-2">' + escapeHtml(r.note) + '</div>';
+}
+
+// Show only the rate inputs relevant to the selected generation mode.
+function syncMode() {
+    const mode = document.getElementById('mode').value;
+    document.getElementById('fixed-rate-wrap').classList.toggle('d-none', mode !== 'FIXED_RATE');
+    document.getElementById('range-rate-wrap').classList.toggle('d-none', mode !== 'RANGE_RATE');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initCharts();
     initMap();
+    loadSystem();
+    document.getElementById('mode').addEventListener('change', syncMode);
+    syncMode();
+
     document.getElementById('generate').addEventListener('click', () => {
-        const total = document.getElementById('total').value;
+        const mode = document.getElementById('mode').value;
+        const params = new URLSearchParams({ total: document.getElementById('total').value, mode });
+        if (mode === 'FIXED_RATE') params.set('ratePerSecond', document.getElementById('ratePerSecond').value);
+        if (mode === 'RANGE_RATE') {
+            params.set('rateMin', document.getElementById('rateMin').value);
+            params.set('rateMax', document.getElementById('rateMax').value);
+        }
         const result = document.getElementById('generate-result');
         result.textContent = 'sending…';
         fetch(BACKEND + '/api/v1/messages', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'total=' + encodeURIComponent(total)
+            body: params.toString()
         })
-            .then((r) => r.json())
-            .then((b) => { onBatch(b); result.textContent = 'batch ' + b.id.slice(0, 8) + ' queued (' + b.total + ' events)'; })
-            .catch((err) => { result.textContent = 'Error: ' + err; });
+            .then((r) => r.ok ? r.json() : r.text().then((t) => { throw new Error(t || r.status); }))
+            .then((b) => {
+                onBatch(b);
+                const label = mode.toLowerCase().replace('_', ' ');
+                result.textContent = 'batch ' + b.id.slice(0, 8) + ' queued (' + b.total + ' events, ' + label + ')';
+            })
+            .catch((err) => { result.textContent = 'Error: ' + err.message; });
     });
 
     stompClient.activate();

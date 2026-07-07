@@ -35,7 +35,7 @@ public class RegistratorService {
         for (DiscoveryProperties.Target t : properties.getServices()) {
             targets.put(t.getName(), t.getUrl());
             health.put(t.getName(),
-                    new ServiceHealthView(t.getName(), t.getUrl(), "UNKNOWN", 0, null, 0, "not yet checked"));
+                    ServiceHealthView.of(t.getName(), t.getUrl(), "UNKNOWN", 0, null, 0, "not yet checked"));
         }
         log.info("Service discovery seeded with {} service(s): {}", targets.size(), targets.keySet());
     }
@@ -48,7 +48,7 @@ public class RegistratorService {
         String name = serviceDto.getServiceName();
         targets.put(name, serviceDto.getServiceUrl());
         health.putIfAbsent(name,
-                new ServiceHealthView(name, serviceDto.getServiceUrl(), "UNKNOWN", 0, null, 0, "registered"));
+                ServiceHealthView.of(name, serviceDto.getServiceUrl(), "UNKNOWN", 0, null, 0, "registered"));
         log.info("Registered service {} at {}", name, serviceDto.getServiceUrl());
     }
 
@@ -57,7 +57,8 @@ public class RegistratorService {
         ServiceHealthView cur = health.get(serviceName);
         if (cur != null) {
             health.put(serviceName, new ServiceHealthView(cur.name(), cur.url(), "UP",
-                    cur.latencyMs(), cur.httpStatus(), System.currentTimeMillis(), "heartbeat"));
+                    cur.latencyMs(), cur.httpStatus(), System.currentTimeMillis(), "heartbeat",
+                    cur.received(), cur.processed()));
         }
     }
 

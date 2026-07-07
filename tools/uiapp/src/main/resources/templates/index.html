@@ -168,11 +168,20 @@
         <div class="table-responsive">
             <table class="table table-sm mb-0 align-middle">
                 <thead class="table-light">
-                <tr><th>Service</th><th>Status</th><th>Latency</th><th>HTTP</th><th>Last checked</th></tr>
+                <tr><th>Service</th><th>Status</th><th>Latency</th><th>HTTP</th><th class="text-end">Received</th><th class="text-end">Processed</th><th>Last checked</th></tr>
                 </thead>
-                <tbody id="services"><tr><td colspan="5" class="text-muted small">Waiting for first poll…</td></tr></tbody>
+                <tbody id="services"><tr><td colspan="7" class="text-muted small">Waiting for first poll…</td></tr></tbody>
             </table>
         </div>
+    </div>
+
+    <!-- System capacity -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <strong>System capacity</strong>
+            <span class="text-muted small">host running the dashboard — estimates</span>
+        </div>
+        <div class="card-body" id="system"><span class="text-muted small">reading host…</span></div>
     </div>
 
     <!-- Generate events -->
@@ -180,8 +189,30 @@
         <div class="card-body">
             <div class="d-flex align-items-end gap-3 flex-wrap">
                 <div>
-                    <label for="total" class="form-label mb-1">Generate accident events</label>
-                    <input type="number" id="total" class="form-control" value="20" min="1" max="10000" style="width: 160px;">
+                    <label for="total" class="form-label mb-1">Total events</label>
+                    <input type="number" id="total" class="form-control" value="200" min="1" max="1000000" style="width: 150px;">
+                </div>
+                <div>
+                    <label for="mode" class="form-label mb-1">Mode</label>
+                    <select id="mode" class="form-select" style="width: 185px;">
+                        <option value="AT_ONCE">All at once</option>
+                        <option value="FIXED_RATE">Fixed rate / sec</option>
+                        <option value="RANGE_RATE">Range rate / sec</option>
+                    </select>
+                </div>
+                <div id="fixed-rate-wrap" class="d-none">
+                    <label for="ratePerSecond" class="form-label mb-1">Events / sec</label>
+                    <input type="number" id="ratePerSecond" class="form-control" value="50" min="1" max="100000" style="width: 130px;">
+                </div>
+                <div id="range-rate-wrap" class="d-none d-flex gap-2">
+                    <div>
+                        <label for="rateMin" class="form-label mb-1">Min / sec</label>
+                        <input type="number" id="rateMin" class="form-control" value="10" min="1" max="100000" style="width: 110px;">
+                    </div>
+                    <div>
+                        <label for="rateMax" class="form-label mb-1">Max / sec</label>
+                        <input type="number" id="rateMax" class="form-control" value="100" min="1" max="100000" style="width: 110px;">
+                    </div>
                 </div>
                 <button id="generate" class="btn btn-primary">Send</button>
                 <span id="generate-result" class="text-muted small"></span>

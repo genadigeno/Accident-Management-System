@@ -7,6 +7,7 @@ import ams.ui.app.service.MessageService;
 import ams.ui.app.service.SendBatchRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,5 +42,11 @@ public class MessageRestController {
         return batchRegistry.get(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    /** Bad generation parameters (rate/total out of range, unknown mode) return 400 with the reason. */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> onBadRequest(IllegalArgumentException ex) {
+        return ResponseEntity.badRequest().body(ex.getMessage());
     }
 }
