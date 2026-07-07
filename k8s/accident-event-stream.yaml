@@ -50,7 +50,7 @@ spec:
               done
               for t in accident.events.dlt emergency.events.dlt law-enforcement.events.dlt \
                        fire-rescue.events.dlt statistics.events.dlt dispatch.events.dlt \
-                       notification.events.dlt correlation.events.dlt; do
+                       notification.events.dlt correlation.events.dlt search.events.dlt; do
                 kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
                   --topic "$t" --partitions 1 --replication-factor 1 --config min.insync.replicas=1
               done

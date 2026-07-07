@@ -16,6 +16,7 @@ apps=(
   "services/notification-service:notification-service"
   "services/incident-correlation-service:incident-correlation-service"
   "services/citizen-report-gateway:citizen-report-gateway"
+  "services/search-service:search-service"
   "tools/uiapp:uiapp"
   "tools/stream-bombarder-app:stream-bombarder"
 )

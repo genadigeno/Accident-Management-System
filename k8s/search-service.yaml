@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: search-service
+  labels:
+    app: search-service
+spec:
+  selector:
+    app: search-service
+  ports:
+    - name: http
+      port: 8091
+      targetPort: 8091
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: search-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: search-service
+  template:
+    metadata:
+      labels:
+        app: search-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port: "8091"
+    spec:
+      containers:
+        - name: search-service
+          image: ams/search-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8091
+          envFrom:
+            - configMapRef:
+                name: ams-config
+          env:
+            - { name: SERVER_PORT, value: "8091" }
+            # Point at the Elasticsearch reachable in your cluster (deployed separately).
+            - { name: ELASTICSEARCH_URL, value: "http://elasticsearch:9200" }
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8091
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8091
+            initialDelaySeconds: 40
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: "150m"
+              memory: "384Mi"
+            limits:
+              memory: "768Mi"
