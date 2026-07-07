@@ -43,8 +43,8 @@ spec:
             - { name: LAW_ENFORCEMENT_URL, value: "http://law-enforcement-service:28089" }
             - { name: FIRERESCUE_URL, value: "http://firerescue-service:38089" }
             - { name: STATISTICS_URL, value: "http://statistics-service:48089" }
-            - { name: DISPATCH_URL, value: "http://dispatch-service:58089" }
-            - { name: NOTIFICATION_URL, value: "http://notification-service:60089" }
+            - { name: DISPATCH_URL, value: "http://dispatch-service:8087" }
+            - { name: NOTIFICATION_URL, value: "http://notification-service:8088" }
             - { name: CORRELATION_URL, value: "http://incident-correlation-service:8089" }
             - { name: GATEWAY_URL, value: "http://citizen-report-gateway:8090" }
           # The uiapp has no actuator; the home page is its readiness signal.

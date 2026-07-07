@@ -9,8 +9,8 @@ spec:
     app: notification-service
   ports:
     - name: http
-      port: 60089
-      targetPort: 60089
+      port: 8088
+      targetPort: 8088
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -28,19 +28,19 @@ spec:
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/path: "/actuator/prometheus"
-        prometheus.io/port: "60089"
+        prometheus.io/port: "8088"
     spec:
       containers:
         - name: notification-service
           image: ams/notification-service:latest
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 60089
+            - containerPort: 8088
           envFrom:
             - configMapRef:
                 name: ams-config
           env:
-            - { name: SERVER_PORT, value: "60089" }
+            - { name: SERVER_PORT, value: "8088" }
             - { name: POSTGRES_URL, value: "jdbc:postgresql://postgres:5432/ams_notification" }
             - name: POSTGRES_USER
               valueFrom: { secretKeyRef: { name: ams-db, key: POSTGRES_USER } }
@@ -49,14 +49,14 @@ spec:
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
-              port: 60089
+              port: 8088
             initialDelaySeconds: 25
             periodSeconds: 10
             failureThreshold: 12
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
-              port: 60089
+              port: 8088
             initialDelaySeconds: 45
             periodSeconds: 15
           resources:

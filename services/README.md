@@ -26,8 +26,8 @@ on top:
 | [emergency-service](emergency-service) | Persists ambulance incidents; **nearest-hospital** lookup; **response-time/SLA** tracking from `unit.status.events` | `18089` | `emergency.events`, `unit.status.events` | `GET /api/v1/hospitals/nearby`, `GET /api/v1/response-times[/summary]` |
 | [firerescue-service](firerescue-service) | Persists fire incidents; **building-plan** lookup for responders | `38089` | `fire-rescue.events` | `GET /api/v1/buildings/plan` |
 | [statistics-service](statistics-service) | Persists windowed per-type counts; metrics, rollups, trends, CSV reports | `48089` | `statistics.events` | `GET /api/v1/stats/{by-type,summary,recent,hourly,daily,weekly,trend,peak-hours}`, `GET /api/v1/reports/daily.csv` |
-| [dispatch-service](dispatch-service) | CAD core — assigns the nearest available unit per incident, tracks `DISPATCHED → EN_ROUTE → ON_SCENE → CLEARED`, emits `unit.status.events` | `58089` | all three responder topics | `GET /api/v1/units`, `GET /api/v1/dispatches[/active]` |
-| [notification-service](notification-service) | Fans in every alert stream (BOLO / SLA / fraud / geo-fence) → dedup, rate-limit, deliver to channels (log, webhook, …) | `60089` | `bolo.alerts`, `sla.alerts`, `accident.events.fraud`, `accident.events.sensitive` | `GET /api/v1/notifications[/summary]` |
+| [dispatch-service](dispatch-service) | CAD core — assigns the nearest available unit per incident, tracks `DISPATCHED → EN_ROUTE → ON_SCENE → CLEARED`, emits `unit.status.events` | `8087` | all three responder topics | `GET /api/v1/units`, `GET /api/v1/dispatches[/active]` |
+| [notification-service](notification-service) | Fans in every alert stream (BOLO / SLA / fraud / geo-fence) → dedup, rate-limit, deliver to channels (log, webhook, …) | `8088` | `bolo.alerts`, `sla.alerts`, `accident.events.fraud`, `accident.events.sensitive` | `GET /api/v1/notifications[/summary]` |
 | [incident-correlation-service](incident-correlation-service) | Merges duplicate reports of the same real-world incident (type + ~150 m grid cell + time window); emits `incident.events` (`OPENED/UPDATED/CLOSED`) | `8089` | `accident.events` | `GET /api/v1/incidents[/{id}\|/nearby]` |
 | [citizen-report-gateway](citizen-report-gateway) | Public intake: validates, API-keys and rate-limits citizen reports, adds a duplicate hint, and publishes into the pipeline | `8090` | — (produces `accident.events`) | `POST /api/v1/reports` |
 
@@ -73,7 +73,7 @@ Serves real-time metrics: totals per type (`/api/v1/stats/by-type`), a headline 
 
 ## Shared conventions
 
-All five follow the same production patterns:
+All services follow the same production patterns:
 
 - **Configuration via environment variables** with sensible localhost defaults —
   `BOOTSTRAP_SERVERS`, `SCHEMA_REGISTRY_URL`, `SERVER_PORT`, `POSTGRES_URL` /

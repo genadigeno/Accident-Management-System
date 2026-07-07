@@ -55,7 +55,7 @@ java -jar target/notification-service.jar
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `SERVER_PORT` | `60089` | HTTP port |
+| `SERVER_PORT` | `8088` | HTTP port |
 | `BOOTSTRAP_SERVERS` | `localhost:9092,localhost:9093` | Kafka brokers |
 | `SCHEMA_REGISTRY_URL` | `http://localhost:8081` | Confluent Schema Registry |
 | `BOLO_ALERTS_TOPIC_NAME` / `SLA_ALERTS_TOPIC_NAME` | `bolo.alerts` / `sla.alerts` | Structured alert topics |

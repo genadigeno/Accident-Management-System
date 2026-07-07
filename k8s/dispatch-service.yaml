@@ -9,8 +9,8 @@ spec:
     app: dispatch-service
   ports:
     - name: http
-      port: 58089
-      targetPort: 58089
+      port: 8087
+      targetPort: 8087
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -28,19 +28,19 @@ spec:
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/path: "/actuator/prometheus"
-        prometheus.io/port: "58089"
+        prometheus.io/port: "8087"
     spec:
       containers:
         - name: dispatch-service
           image: ams/dispatch-service:latest
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 58089
+            - containerPort: 8087
           envFrom:
             - configMapRef:
                 name: ams-config
           env:
-            - { name: SERVER_PORT, value: "58089" }
+            - { name: SERVER_PORT, value: "8087" }
             - { name: POSTGRES_URL, value: "jdbc:postgresql://postgres:5432/ams_dispatch" }
             - name: POSTGRES_USER
               valueFrom: { secretKeyRef: { name: ams-db, key: POSTGRES_USER } }
@@ -49,14 +49,14 @@ spec:
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
-              port: 58089
+              port: 8087
             initialDelaySeconds: 25
             periodSeconds: 10
             failureThreshold: 12
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
-              port: 58089
+              port: 8087
             initialDelaySeconds: 45
             periodSeconds: 15
           resources:

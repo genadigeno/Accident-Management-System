@@ -46,7 +46,7 @@ Downstream (roadmap phase 2), the emergency service consumes `unit.status.events
 | `GET /api/v1/dispatches/active` | Everything not yet cleared (incl. `WAITING` stacked calls) |
 
 ```bash
-curl http://localhost:58089/api/v1/dispatches/active
+curl http://localhost:8087/api/v1/dispatches/active
 ```
 
 Metrics: `ams.dispatch.assigned`, `ams.dispatch.queued`, `ams.dispatch.completed`
@@ -71,7 +71,7 @@ java -jar target/dispatch-service.jar
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `SERVER_PORT` | `58089` | HTTP port |
+| `SERVER_PORT` | `8087` | HTTP port |
 | `BOOTSTRAP_SERVERS` | `localhost:9092,localhost:9093` | Kafka brokers |
 | `SCHEMA_REGISTRY_URL` | `http://localhost:8081` | Confluent Schema Registry |
 | `EMERGENCY_TOPIC_NAME` / `LAW_ENFORCEMENT_TOPIC_NAME` / `FIRE_RESCUE_TOPIC_NAME` | responder topics | Topics consumed |
