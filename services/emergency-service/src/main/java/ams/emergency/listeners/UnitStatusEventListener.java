@@ -27,7 +27,7 @@ public class UnitStatusEventListener {
     @KafkaListener(
             topics = "${kafka.unit-status.topic}",
             containerFactory = "kafkaListenerContainerFactory",
-            concurrency = "1",
+            concurrency = "${LISTENER_CONCURRENCY:3}",
             batch = "true"
     )
     public void handle(List<ConsumerRecord<String, UnitStatusEvent>> records, Acknowledgment ack) {

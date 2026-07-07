@@ -27,7 +27,7 @@ public class AccidentEnrichmentListener {
     @KafkaListener(
             topics = "${kafka.source.topic}",
             containerFactory = "kafkaListenerContainerFactory",
-            concurrency = "1",
+            concurrency = "${LISTENER_CONCURRENCY:3}",
             batch = "true"
     )
     public void handle(List<ConsumerRecord<String, AccidentEventModel>> records, Acknowledgment ack) {

@@ -22,7 +22,7 @@ public class FireAccidentEventListener {
      *  concurrency - why use only 1 thread, therefore it provides a possibility of vertical scaling
      * */
     @KafkaListener(topics="${kafka.main.topic}", containerFactory="kafkaListenerContainerFactory",
-            concurrency="1", batch = "true")
+            concurrency = "${LISTENER_CONCURRENCY:3}", batch = "true")
     public void handler(List<ConsumerRecord<String, FireAccidentModel>> messages, Acknowledgment ack) {
         try {
             log.info("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -");

@@ -28,7 +28,7 @@ public class AlertEventListener {
     @KafkaListener(
             topics = {"${kafka.bolo-alerts.topic}", "${kafka.sla-alerts.topic}"},
             containerFactory = "kafkaListenerContainerFactory",
-            concurrency = "1",
+            concurrency = "${LISTENER_CONCURRENCY:3}",
             batch = "true"
     )
     public void handle(List<ConsumerRecord<String, AlertEvent>> records, Acknowledgment ack) {

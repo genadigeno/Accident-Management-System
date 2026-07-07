@@ -24,7 +24,7 @@ public class EmergencyAccidentEventListener {
     @KafkaListener(
             topics="${kafka.main.topic}",
             containerFactory="kafkaListenerContainerFactory",
-            concurrency="1",
+            concurrency = "${LISTENER_CONCURRENCY:3}",
             batch = "true"
     )
     public void handler(List<ConsumerRecord<String, EmergencyEventModel>> messages, Acknowledgment ack) {
