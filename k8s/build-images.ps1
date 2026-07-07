@@ -12,6 +12,8 @@ $apps = @(
   @{ module = "services/statistics-service";      name = "statistics-service" },
   @{ module = "services/dispatch-service";        name = "dispatch-service" },
   @{ module = "services/notification-service";    name = "notification-service" },
+  @{ module = "services/incident-correlation-service"; name = "incident-correlation-service" },
+  @{ module = "services/citizen-report-gateway";  name = "citizen-report-gateway" },
   @{ module = "tools/uiapp";                      name = "uiapp" },
   @{ module = "tools/stream-bombarder-app";       name = "stream-bombarder" }
 )

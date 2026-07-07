@@ -23,3 +23,7 @@ scrape_configs:
         labels: { service: dispatch-service }
       - targets: ["host.docker.internal:60089"]
         labels: { service: notification-service }
+      - targets: ["host.docker.internal:8089"]
+        labels: { service: incident-correlation-service }
+      - targets: ["host.docker.internal:8090"]
+        labels: { service: citizen-report-gateway }

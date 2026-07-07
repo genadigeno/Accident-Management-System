@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: citizen-report-gateway
+  labels:
+    app: citizen-report-gateway
+spec:
+  selector:
+    app: citizen-report-gateway
+  ports:
+    - name: http
+      port: 8090
+      targetPort: 8090
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: citizen-report-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: citizen-report-gateway
+  template:
+    metadata:
+      labels:
+        app: citizen-report-gateway
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port: "8090"
+    spec:
+      containers:
+        - name: citizen-report-gateway
+          image: ams/citizen-report-gateway:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8090
+          envFrom:
+            - configMapRef:
+                name: ams-config
+          env:
+            - { name: SERVER_PORT, value: "8090" }
+            - { name: GATEWAY_CORRELATION_URL, value: "http://incident-correlation-service:8089" }
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8090
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8090
+            initialDelaySeconds: 40
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "384Mi"
+            limits:
+              memory: "768Mi"

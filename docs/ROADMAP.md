@@ -26,7 +26,7 @@ problem — see [Axon 911](https://www.axon.com/solutions/axon-911) and
 | **1** | **`dispatch-service`** — unit registry, nearest-available assignment, `unit.status.events` lifecycle (`DISPATCHED → EN_ROUTE → ON_SCENE → CLEARED`), built-in movement simulator, call stacking when no unit is free | L | ✅ done |
 | **2** | Emergency **response-time tracking + SLA alerts** (consumes `unit.status.events`); statistics **hourly/daily/weekly rollups, trend %, CSV report** | M | ✅ done |
 | **3** | **`bolo.alerts` topic** + **`notification-service`** (fan-in from bolo/fraud/sensitive/SLA topics → log + webhook channels first, SMTP/Telegram behind adapters; dedup + rate limits) | M | ✅ done |
-| **4** | **`incident-correlation-service`** (geohash cell + time window merges duplicate reports into one incident, `incident.events` lifecycle) + **`citizen-report-gateway`** (public intake API with validation, rate limiting, duplicate-hint) | L | ⬜ |
+| **4** | **`incident-correlation-service`** (grid cell + time window merges duplicate reports into one incident, `incident.events` lifecycle) + **`citizen-report-gateway`** (public intake API with validation, API keys, rate limiting, duplicate-hint) | L | ✅ done |
 | **5** | **`search-service`** on Elasticsearch (index all responder events; full-text + geo + time queries; past-incident correlation API; Kibana) + uiapp **map view & alert panel** | M | ⬜ |
 | **6** | **`enrichment-service`** (weather via Open-Meteo, district via reverse geocoding), fire **hydrant lookup** (Overpass), **real building-plan DB**, crime **hotspot API**, ML hotspot baseline (EWMA/Poisson) | M–L | ⬜ |
 

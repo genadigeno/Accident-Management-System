@@ -22,6 +22,8 @@ resources:
   - statistics-service.yaml
   - dispatch-service.yaml
   - notification-service.yaml
+  - incident-correlation-service.yaml
+  - citizen-report-gateway.yaml
   - uiapp.yaml
   # NOTE: stream-bombarder.job.yaml is intentionally NOT included — it is an on-demand Job,
   # applied separately when you want to generate load.
@@ -46,6 +48,10 @@ images:
   - name: ams/dispatch-service
     newTag: latest
   - name: ams/notification-service
+    newTag: latest
+  - name: ams/incident-correlation-service
+    newTag: latest
+  - name: ams/citizen-report-gateway
     newTag: latest
   - name: ams/uiapp
     newTag: latest

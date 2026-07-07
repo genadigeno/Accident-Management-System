@@ -78,6 +78,8 @@ Every incident — regardless of type — is also fed to the **statistics-servic
 | [`services/statistics-service`](services/statistics-service) | Consumes aggregated statistics events and persists windowed counts to PostgreSQL. |
 | [`services/dispatch-service`](services/dispatch-service) | The dispatcher. Assigns the nearest available response unit (police car / ambulance / fire engine) to each incident and tracks it to completion. |
 | [`services/notification-service`](services/notification-service) | The alerter. Collects every operational alert (BOLO, SLA breaches, fraud, sensitive zones) and delivers each one exactly once to the configured channels. |
+| [`services/incident-correlation-service`](services/incident-correlation-service) | The de-duplicator. Merges many reports of the same real-world incident into one, so responders aren't dispatched twice for one event. |
+| [`services/citizen-report-gateway`](services/citizen-report-gateway) | The public front door. A validated, rate-limited HTTP API where citizens report incidents into the pipeline. |
 | [`libs/ams-schemas`](libs/ams-schemas) | The shared data contract — Apache Avro schemas published to the Schema Registry and used by every service. |
 | [`tools/stream-bombarder-app`](tools/stream-bombarder-app) | A load generator that floods the source topic with realistic random incidents for testing. |
 | [`tools/dlt-replay-app`](tools/dlt-replay-app) | Replays dead-letter records back to their source topic once the underlying issue is fixed. |

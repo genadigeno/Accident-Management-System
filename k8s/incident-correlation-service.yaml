@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: incident-correlation-service
+  labels:
+    app: incident-correlation-service
+spec:
+  selector:
+    app: incident-correlation-service
+  ports:
+    - name: http
+      port: 8089
+      targetPort: 8089
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: incident-correlation-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: incident-correlation-service
+  template:
+    metadata:
+      labels:
+        app: incident-correlation-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port: "8089"
+    spec:
+      containers:
+        - name: incident-correlation-service
+          image: ams/incident-correlation-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8089
+          envFrom:
+            - configMapRef:
+                name: ams-config
+          env:
+            - { name: SERVER_PORT, value: "8089" }
+            - { name: POSTGRES_URL, value: "jdbc:postgresql://postgres:5432/ams_correlation" }
+            - name: POSTGRES_USER
+              valueFrom: { secretKeyRef: { name: ams-db, key: POSTGRES_USER } }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: ams-db, key: POSTGRES_PASSWORD } }
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8089
+            initialDelaySeconds: 25
+            periodSeconds: 10
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8089
+            initialDelaySeconds: 45
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: "150m"
+              memory: "512Mi"
+            limits:
+              memory: "1Gi"
