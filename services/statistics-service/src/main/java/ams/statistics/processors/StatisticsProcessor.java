@@ -7,6 +7,7 @@ import ams.statistics.jpa.WindowedId;
 import ams.statistics.service.StatisticsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.listener.BatchListenerFailedException;
 import org.springframework.stereotype.Component;
@@ -22,8 +23,11 @@ import java.util.List;
 public class StatisticsProcessor {
     private final StatisticsService statisticsService;
 
+    private final MeterRegistry meterRegistry;
+
     public void process(List<ConsumerRecord<String, StatisticalModel>> records) {
         log.info("Total messages - {}", records.size());
+        meterRegistry.counter("ams.events.received").increment(records.size());
 
         List<StatisticalModelData> batch = new ArrayList<>();
         for (ConsumerRecord<String, StatisticalModel> rec : records) {
@@ -56,6 +60,7 @@ public class StatisticsProcessor {
         }
         log.info("batch size - {}", batch.size());
         statisticsService.saveBatch(batch);
+        meterRegistry.counter("ams.events.processed").increment(batch.size());
         log.info("batch saved");
     }
 

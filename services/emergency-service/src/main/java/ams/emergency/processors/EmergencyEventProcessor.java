@@ -7,6 +7,7 @@ import ams.emergency.mapper.EmergencyMapper;
 import ams.emergency.service.EmergencyAccidentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.listener.BatchListenerFailedException;
 import org.springframework.stereotype.Component;
@@ -22,8 +23,11 @@ import java.util.List;
 public class EmergencyEventProcessor {
     private final EmergencyAccidentService emergencyAccidentService;
 
+    private final MeterRegistry meterRegistry;
+
     public void process(List<ConsumerRecord<String, EmergencyEventModel>> records) {
         log.info("Total messages - {}", records.size());
+        meterRegistry.counter("ams.events.received").increment(records.size());
 
         List<EmergencyAccident> batch = new ArrayList<>();
         for (ConsumerRecord<String, EmergencyEventModel> rec : records) {
@@ -52,6 +56,7 @@ public class EmergencyEventProcessor {
         }
         log.info("Batch size - {}", batch.size());
         emergencyAccidentService.saveBatch(batch);
+        meterRegistry.counter("ams.events.processed").increment(batch.size());
         log.info("Batch saved");
     }
 

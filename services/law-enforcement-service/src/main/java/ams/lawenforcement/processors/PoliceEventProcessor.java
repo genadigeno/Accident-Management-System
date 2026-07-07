@@ -7,6 +7,7 @@ import ams.lawenforcement.mapper.PoliceMapper;
 import ams.lawenforcement.service.LawEnforcementService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.listener.BatchListenerFailedException;
 import org.springframework.stereotype.Component;
@@ -21,8 +22,11 @@ public class PoliceEventProcessor {
     private final LawEnforcementService lawEnforcementService;
     private final BoloDetector boloDetector;
 
+    private final MeterRegistry meterRegistry;
+
     public void process(List<ConsumerRecord<String, PoliceEventModel>> records) {
         log.info("Total messages - {}", records.size());
+        meterRegistry.counter("ams.events.received").increment(records.size());
 
         List<LawEnforcementAccident> batch = new ArrayList<>();
         for (ConsumerRecord<String, PoliceEventModel> rec : records) {
@@ -53,6 +57,7 @@ public class PoliceEventProcessor {
         }
         log.info("Batch size - {}", batch.size());
         lawEnforcementService.saveBatch(batch);
+        meterRegistry.counter("ams.events.processed").increment(batch.size());
         log.info("Batch saved");
     }
 }
