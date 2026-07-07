@@ -16,6 +16,7 @@ stompClient.onConnect = () => {
     stompClient.subscribe('/topic/send-status', (msg) => onBatch(JSON.parse(msg.body)));
     stompClient.subscribe('/topic/service-discovery', (msg) => onServices(JSON.parse(msg.body)));
     stompClient.subscribe('/topic/analytics', (msg) => onAnalytics(JSON.parse(msg.body)));
+    stompClient.subscribe('/topic/alerts', (msg) => onAlert(JSON.parse(msg.body)));
     fetch(BACKEND + '/api/v1/messages/batches').then((r) => r.json()).then((list) => list.forEach(onBatch)).catch(() => {});
     fetch(BACKEND + '/api/v1/register').then((r) => r.json()).then(onServices).catch(() => {});
 };
@@ -35,6 +36,56 @@ function onEvent(e) {
     const typeEl = document.getElementById('count-' + e.type);
     if (typeEl) typeEl.textContent = counts[e.type];
     prependRow(e);
+    plotEvent(e);
+}
+
+// ---------------- Incident map (Leaflet) ----------------
+const TYPE_COLORS = { CAR_ACCIDENT: '#0d6efd', FIRE_ACCIDENT: '#dc3545', CRIMINAL: '#ffc107', OTHER_ACCIDENT: '#6c757d' };
+let map = null;
+const markers = [];
+const MAX_MARKERS = 200;
+
+function initMap() {
+    if (typeof L === 'undefined' || !document.getElementById('map')) return;
+    map = L.map('map', { scrollWheelZoom: false }).setView([41.7, 44.8], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19, attribution: '© OpenStreetMap'
+    }).addTo(map);
+    // The card lays out after this runs; nudge Leaflet to recompute its size.
+    setTimeout(() => map.invalidateSize(), 200);
+}
+
+function plotEvent(e) {
+    if (!map) return;
+    const lat = parseFloat(e.latitude), lng = parseFloat(e.longitude);
+    if (!isFinite(lat) || !isFinite(lng) || (lat === 0 && lng === 0)) return;
+    const marker = L.circleMarker([lat, lng], {
+        radius: 6, color: TYPE_COLORS[e.type] || '#6c757d',
+        fillColor: TYPE_COLORS[e.type] || '#6c757d', fillOpacity: 0.8, weight: 1
+    }).addTo(map);
+    marker.bindPopup('<strong>' + escapeHtml(e.type) + '</strong><br>' + escapeHtml(e.address));
+    markers.push(marker);
+    if (markers.length > MAX_MARKERS) map.removeLayer(markers.shift());
+}
+
+// ---------------- Live alerts panel ----------------
+const SEVERITY_COLORS = { CRITICAL: 'danger', HIGH: 'warning', MEDIUM: 'info', INFO: 'secondary' };
+
+function onAlert(a) {
+    const ul = document.getElementById('alerts');
+    if (!ul) return;
+    if (ul.children.length === 1 && ul.children[0].classList.contains('text-muted')) ul.innerHTML = '';
+    const color = SEVERITY_COLORS[a.severity] || 'secondary';
+    const time = new Date(a.at || Date.now()).toLocaleTimeString();
+    const li = document.createElement('li');
+    li.className = 'list-group-item py-2';
+    li.innerHTML = '<div class="d-flex justify-content-between align-items-start">'
+        + '<span class="badge text-bg-' + color + ' me-2">' + escapeHtml(a.source) + '</span>'
+        + '<span class="text-muted small">' + time + '</span></div>'
+        + '<div class="fw-semibold small mt-1">' + escapeHtml(a.title) + '</div>'
+        + '<div class="text-muted small">' + escapeHtml(a.message) + '</div>';
+    ul.insertBefore(li, ul.firstChild);
+    while (ul.children.length > 30) ul.removeChild(ul.lastChild);
 }
 
 function prependRow(e) {
@@ -177,6 +228,7 @@ function escapeHtml(s) {
 
 document.addEventListener('DOMContentLoaded', () => {
     initCharts();
+    initMap();
     document.getElementById('generate').addEventListener('click', () => {
         const total = document.getElementById('total').value;
         const result = document.getElementById('generate-result');

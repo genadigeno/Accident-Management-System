@@ -1,7 +1,9 @@
 package ams.ui.app.service;
 
 import ams.data.model.AccidentEventModel;
+import ams.data.model.AlertEvent;
 import ams.ui.app.dta.AccidentEventDto;
+import ams.ui.app.dta.AlertDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -71,13 +73,39 @@ public class EventStreamConsumer {
     }
 
     @KafkaListener(topics = "${topic.config.sensitive}", groupId = "${spring.kafka.consumer.group-id}-sensitive")
-    public void onSensitive(Object payload) {
+    public void onSensitive(AccidentEventModel event) {
         analyticsService.recordSensitive();
+        String address = str(event.getLocation() != null ? event.getLocation().getAddress() : null);
+        pushAlert("GEOFENCE", "HIGH", "Incident in sensitive zone",
+                str(event.getType() != null ? event.getType().name() : "") + " at " + address);
     }
 
     @KafkaListener(topics = "${topic.config.fraud}", groupId = "${spring.kafka.consumer.group-id}-fraud")
     public void onFraud(Object payload) {
         analyticsService.recordFraud();
+        pushAlert("FRAUD", "HIGH", "Possible fraud: rapid repeat reports", str(payload.toString()));
+    }
+
+    /** Structured BOLO alerts from law-enforcement. */
+    @KafkaListener(topics = "${topic.config.bolo}", groupId = "${spring.kafka.consumer.group-id}-bolo")
+    public void onBolo(AlertEvent alert) {
+        pushAlert(alert);
+    }
+
+    /** Structured response-SLA breach alerts from emergency. */
+    @KafkaListener(topics = "${topic.config.sla}", groupId = "${spring.kafka.consumer.group-id}-sla")
+    public void onSla(AlertEvent alert) {
+        pushAlert(alert);
+    }
+
+    private void pushAlert(AlertEvent alert) {
+        pushAlert(str(alert.getSource()), alert.getSeverity() != null ? alert.getSeverity().name() : "INFO",
+                str(alert.getTitle()), str(alert.getMessage()));
+    }
+
+    private void pushAlert(String source, String severity, String title, String message) {
+        messagingTemplate.convertAndSend("/topic/alerts",
+                new AlertDto(source, severity, title, message, System.currentTimeMillis()));
     }
 
     private static String str(CharSequence cs) {
