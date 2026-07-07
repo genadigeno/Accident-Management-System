@@ -50,7 +50,7 @@ It's built so that if one team's service is busy or briefly fails, the others ke
           │ emergency-   │ │ law-     │ │ firerescue-│ │ (windowed  │  └──────────────┘
           │ service      │ │ enforce. │ │ service    │ │  counts)   │
           └──────┬───────┘ └────┬─────┘ └─────┬──────┘ └──────┬─────┘
-                 ▼              ▼             ▼              ▼
+                 ▼              ▼             ▼               ▼
               PostgreSQL    PostgreSQL    PostgreSQL     PostgreSQL
 ```
 
