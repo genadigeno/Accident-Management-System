@@ -120,6 +120,20 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_USER: test
       POSTGRES_DB: accident_management_service
+    # Data-intensive tuning: headroom for many per-service pools (7 services x 15 = 105) plus
+    # admin/tooling, and a larger buffer/cache for the write-heavy ingest. synchronous_commit is
+    # left ON: consumers ack Kafka offsets only AFTER the DB commit, so async commit could drop
+    # rows whose offsets were already advanced (Kafka can't replay them).
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=200"
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "effective_cache_size=768MB"
+      - "-c"
+      - "max_wal_size=2GB"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U test -d accident_management_service"]
       interval: 10s

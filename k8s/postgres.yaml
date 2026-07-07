@@ -31,6 +31,17 @@ spec:
       containers:
         - name: postgres
           image: postgres:17-alpine3.21
+          # Data-intensive tuning (see docker-compose for the rationale).
+          args:
+            - "postgres"
+            - "-c"
+            - "max_connections=200"
+            - "-c"
+            - "shared_buffers=256MB"
+            - "-c"
+            - "effective_cache_size=768MB"
+            - "-c"
+            - "max_wal_size=2GB"
           ports:
             - containerPort: 5432
           env:
@@ -58,10 +69,10 @@ spec:
             periodSeconds: 5
           resources:
             requests:
-              cpu: "100m"
-              memory: "256Mi"
-            limits:
+              cpu: "250m"
               memory: "512Mi"
+            limits:
+              memory: "1Gi"
       volumes:
         - name: init
           configMap:
