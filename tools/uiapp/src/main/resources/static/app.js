@@ -114,6 +114,37 @@ function onBatch(b) {
     if (prev && prev.status !== 'IN_PROGRESS' && b.status === 'IN_PROGRESS') return;
     batches[b.id] = b;
     renderBatches();
+    renderDelivery();
+}
+
+// Aggregate delivery bar: successfully received (producer-acknowledged) vs total sent,
+// summed across every batch this session.
+function renderDelivery() {
+    const list = Object.values(batches);
+    if (!list.length) return;
+    let sent = 0, received = 0, failed = 0, inProgress = false;
+    list.forEach((b) => {
+        sent += b.total || 0;
+        received += b.produced || 0;
+        failed += b.failed || 0;
+        if (b.status === 'IN_PROGRESS') inProgress = true;
+    });
+    const pct = sent ? Math.round(received * 100 / sent) : 0;
+    document.getElementById('delivery').classList.remove('d-none');
+    document.getElementById('delivery-received').textContent = received.toLocaleString();
+    document.getElementById('delivery-sent').textContent = sent.toLocaleString();
+    const failedWrap = document.getElementById('delivery-failed-wrap');
+    if (failed > 0) {
+        failedWrap.classList.remove('d-none');
+        document.getElementById('delivery-failed').textContent = failed.toLocaleString();
+    } else {
+        failedWrap.classList.add('d-none');
+    }
+    const bar = document.getElementById('delivery-bar');
+    bar.style.width = pct + '%';
+    bar.textContent = pct + '%';
+    const color = failed > 0 ? 'bg-warning' : (inProgress ? 'bg-info' : 'bg-success');
+    bar.className = 'progress-bar ' + color + (inProgress ? ' progress-bar-striped progress-bar-animated' : '');
 }
 
 function renderBatches() {
