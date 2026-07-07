@@ -24,9 +24,31 @@ curl "http://localhost:38089/api/v1/buildings/plan?address=12%20Oak%20Street"
 ```
 
 The lookup is behind a [`BuildingPlanProvider`](src/main/java/ams/firerescue/building/BuildingPlanProvider.java)
-adapter. The bundled provider is an in-memory **stub** that returns a deterministic, plausible plan
-for any address (same address → same plan); swap in a real Fire Department blueprint database in
-production. A blank/missing address returns `400`; an unknown one returns `404`.
+adapter. The **primary** provider is now **database-backed**: a plan imported for an address is
+served from PostgreSQL (`source: "db"`); addresses that aren't stored fall back to the deterministic
+in-memory **stub** (`source: "stub"`), so the endpoint always has an answer. A blank address returns `400`.
+
+Import a real plan (thereafter served from the DB):
+
+```bash
+curl -X POST http://localhost:38089/api/v1/buildings/plan -H "Content-Type: application/json" \
+  -d '{"address":"12 Oak Street","floors":9,
+       "fireEscapeRoutes":["Stairwell A — floors 1-9","External fire escape — floor 3"],
+       "gasLineLocations":["Main shutoff — basement NW"]}'
+```
+
+### Nearby fire hydrants
+
+Finds fire hydrants near an incident so crews know their water supply. Backed by the free
+OpenStreetMap Overpass API (`emergency=fire_hydrant`), sorted by distance, cached per location.
+
+```bash
+curl "http://localhost:38089/api/v1/hydrants/nearby?lat=41.7151&lng=44.8271&radius=500"
+# [ { "ref":"hydrant", "latitude":41.71, "longitude":44.83, "distanceMeters":120 }, ... ]
+```
+
+`radius` is metres (50–10000, default 500). Invalid coordinates return `400`; an unreachable
+provider degrades to `502`.
 
 ## Build
 
