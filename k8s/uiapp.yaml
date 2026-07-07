@@ -48,6 +48,7 @@ spec:
             - { name: CORRELATION_URL, value: "http://incident-correlation-service:8089" }
             - { name: GATEWAY_URL, value: "http://citizen-report-gateway:8090" }
             - { name: SEARCH_URL, value: "http://search-service:8091" }
+            - { name: ENRICHMENT_URL, value: "http://enrichment-service:8092" }
           # The uiapp has no actuator; the home page is its readiness signal.
           readinessProbe:
             httpGet:

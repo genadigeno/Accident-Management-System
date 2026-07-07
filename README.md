@@ -81,6 +81,7 @@ Every incident — regardless of type — is also fed to the **statistics-servic
 | [`services/incident-correlation-service`](services/incident-correlation-service) | The de-duplicator. Merges many reports of the same real-world incident into one, so responders aren't dispatched twice for one event. |
 | [`services/citizen-report-gateway`](services/citizen-report-gateway) | The public front door. A validated, rate-limited HTTP API where citizens report incidents into the pipeline. |
 | [`services/search-service`](services/search-service) | The historian. Indexes every incident into Elasticsearch for full-text, geographic and time-range search over the whole history. |
+| [`services/enrichment-service`](services/enrichment-service) | The context provider. Adds weather and district to each incident and republishes it for downstream analytics. |
 | [`libs/ams-schemas`](libs/ams-schemas) | The shared data contract — Apache Avro schemas published to the Schema Registry and used by every service. |
 | [`tools/stream-bombarder-app`](tools/stream-bombarder-app) | A load generator that floods the source topic with realistic random incidents for testing. |
 | [`tools/dlt-replay-app`](tools/dlt-replay-app) | Replays dead-letter records back to their source topic once the underlying issue is fixed. |

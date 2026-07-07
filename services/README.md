@@ -31,6 +31,7 @@ on top:
 | [incident-correlation-service](incident-correlation-service) | Merges duplicate reports of the same real-world incident (type + ~150 m grid cell + time window); emits `incident.events` (`OPENED/UPDATED/CLOSED`) | `8089` | `accident.events` | `GET /api/v1/incidents[/{id}\|/nearby]` |
 | [citizen-report-gateway](citizen-report-gateway) | Public intake: validates, API-keys and rate-limits citizen reports, adds a duplicate hint, and publishes into the pipeline | `8090` | — (produces `accident.events`) | `POST /api/v1/reports` |
 | [search-service](search-service) | Indexes every incident into Elasticsearch for full-text, geo and time-range search — including past-incident lookup near a location | `8091` | `accident.events` | `GET /api/v1/search`, `GET /api/v1/history/nearby` |
+| [enrichment-service](enrichment-service) | Enriches each incident with weather (Open-Meteo) and district, republishing `accident.events.enriched` | `8092` | `accident.events` | `GET /api/v1/enriched/recent` |
 
 ## The services
 

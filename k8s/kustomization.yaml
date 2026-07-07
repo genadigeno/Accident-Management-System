@@ -25,6 +25,7 @@ resources:
   - incident-correlation-service.yaml
   - citizen-report-gateway.yaml
   - search-service.yaml
+  - enrichment-service.yaml
   - uiapp.yaml
   # NOTE: stream-bombarder.job.yaml is intentionally NOT included — it is an on-demand Job,
   # applied separately when you want to generate load.
@@ -55,6 +56,8 @@ images:
   - name: ams/citizen-report-gateway
     newTag: latest
   - name: ams/search-service
+    newTag: latest
+  - name: ams/enrichment-service
     newTag: latest
   - name: ams/uiapp
     newTag: latest

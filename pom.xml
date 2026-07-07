@@ -33,6 +33,7 @@
         <module>services/incident-correlation-service</module>
         <module>services/citizen-report-gateway</module>
         <module>services/search-service</module>
+        <module>services/enrichment-service</module>
         <module>tools/stream-bombarder-app</module>
         <module>tools/dlt-replay-app</module>
         <module>tools/uiapp</module>

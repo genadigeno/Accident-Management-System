@@ -29,3 +29,5 @@ scrape_configs:
         labels: { service: citizen-report-gateway }
       - targets: ["host.docker.internal:8091"]
         labels: { service: search-service }
+      - targets: ["host.docker.internal:8092"]
+        labels: { service: enrichment-service }
