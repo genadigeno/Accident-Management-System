@@ -25,8 +25,9 @@ stompClient.onStompError = (frame) => console.error('Broker error: ', frame.body
 
 function setStatus(connected) {
     const el = document.getElementById('status');
-    el.textContent = connected ? 'connected' : 'disconnected';
-    el.className = 'badge ' + (connected ? 'bg-success' : 'bg-danger');
+    const dot = connected ? '#6a9d81' : '#c67b6b';
+    el.className = 'badge ' + (connected ? 'text-bg-success' : 'text-bg-danger');
+    el.innerHTML = '<span class="status-dot" style="background:' + dot + '"></span>' + (connected ? 'connected' : 'disconnected');
 }
 
 function onEvent(e) {
@@ -40,7 +41,7 @@ function onEvent(e) {
 }
 
 // ---------------- Incident map (Leaflet) ----------------
-const TYPE_COLORS = { CAR_ACCIDENT: '#0d6efd', FIRE_ACCIDENT: '#dc3545', CRIMINAL: '#ffc107', OTHER_ACCIDENT: '#6c757d' };
+const TYPE_COLORS = { CAR_ACCIDENT: '#5b7db1', FIRE_ACCIDENT: '#c67b6b', CRIMINAL: '#bf9b47', OTHER_ACCIDENT: '#8a97a8' };
 let map = null;
 const markers = [];
 const MAX_MARKERS = 200;
@@ -175,13 +176,13 @@ function initCharts() {
     if (!typeCanvas || !rateCanvas || typeof Chart === 'undefined') return;
     typeChart = new Chart(typeCanvas, {
         type: 'doughnut',
-        data: { labels: [], datasets: [{ data: [], backgroundColor: ['#0d6efd', '#dc3545', '#ffc107', '#6c757d', '#198754', '#0dcaf0'] }] },
-        options: { plugins: { legend: { position: 'bottom' } }, animation: false }
+        data: { labels: [], datasets: [{ data: [], backgroundColor: ['#5b7db1', '#c67b6b', '#bf9b47', '#8a97a8', '#6a9d81', '#5f96a8'], borderColor: '#fff', borderWidth: 2 }] },
+        options: { cutout: '62%', plugins: { legend: { position: 'bottom', labels: { color: '#5c6674', usePointStyle: true, padding: 14 } } }, animation: false }
     });
     rateChart = new Chart(rateCanvas, {
         type: 'line',
-        data: { labels: [], datasets: [{ label: 'events/sec', data: [], borderColor: '#0d6efd', backgroundColor: 'rgba(13,110,253,0.1)', fill: true, tension: 0.3, pointRadius: 0 }] },
-        options: { scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } }, animation: false }
+        data: { labels: [], datasets: [{ label: 'events/sec', data: [], borderColor: '#5b7db1', backgroundColor: 'rgba(91,125,177,0.14)', fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2 }] },
+        options: { scales: { y: { beginAtZero: true, grid: { color: '#edf0f4' }, ticks: { color: '#8b95a4' } }, x: { grid: { display: false }, ticks: { color: '#8b95a4', maxTicksLimit: 6 } } }, plugins: { legend: { display: false } }, animation: false }
     });
 }
 
