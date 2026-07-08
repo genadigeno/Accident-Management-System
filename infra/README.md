@@ -20,11 +20,15 @@ This brings up:
 |-----------|---------|
 | Kafka brokers | 3 brokers (`kafka1`/`kafka2`/`kafka3`) in **KRaft** mode (no ZooKeeper), host ports `9091`/`9092`/`9093` |
 | Schema Registry | `http://localhost:8081` |
-| PostgreSQL | `localhost:5432`, database `accident_management_service`, user `test`, password `postgres` |
+| PostgreSQL | `localhost:5432`, user `test`, password `postgres`; auto-creates a database **per service** on first start (`ams_emergency`, `ams_lawenf`, `ams_firerescue`, `ams_statistics`, `ams_dispatch`, `ams_notification`, `ams_correlation`) — see [`db/`](db) |
 | Prometheus | `http://localhost:9090` — scrapes the host-run services' `/actuator/prometheus` (config in [`monitoring/`](monitoring)) |
 | Grafana | `http://localhost:3000` — login `admin` / `admin`; **AMS — Service Overview** dashboard pre-provisioned |
 
-Tear it down with `docker compose down` (add `-v` to also remove volumes).
+> **Elasticsearch is not part of this stack** — `search-service` needs one separately at
+> `localhost:9200` (security disabled). Run your own single node or cluster.
+
+Tear it down with `docker compose down` (add `-v` to also remove volumes; wiping the volume also
+drops the per-service databases, which are re-created on the next `up`).
 
 ## Helper run scripts
 
@@ -41,8 +45,11 @@ random/distinct port.
 | `run-statistics-service-app.bat` | Statistics service |
 | `start-stream-bombarder.bat` | Load generator (`stream-bombarder-app`) |
 
-> These are Windows `.bat` scripts. On Unix/macOS, use the `java -jar` commands from the
-> [root README](../README.md#-installation).
+> These are Windows `.bat` scripts covering the router + original four responders. The newer
+> services (`dispatch`, `notification`, `incident-correlation`, `citizen-report-gateway`,
+> `search`, `enrichment`) have no `.bat` helper — start them with the `java -jar` commands (and
+> per-service `POSTGRES_URL`) from the [root README](../README.md#-installation). On Unix/macOS use
+> those commands directly.
 
 ## `monitoring/`
 
@@ -51,5 +58,8 @@ into the Prometheus and Grafana containers by the root `docker-compose.yml`.
 
 ## `db/`
 
-Optional SQL bootstrap scripts that can be mounted into the PostgreSQL container
-(see the commented `volumes:` block in the root `docker-compose.yml`).
+`db/init/` holds the Postgres bootstrap SQL that **creates the per-service databases**
+(`01-create-databases.sql`). The root `docker-compose.yml` mounts it into the container's
+`/docker-entrypoint-initdb.d`, so the databases are created automatically the first time the
+`ams-db` volume initialises. (Kubernetes does the equivalent via
+[`k8s/postgres-init.configmap.yaml`](../k8s/postgres-init.configmap.yaml).)

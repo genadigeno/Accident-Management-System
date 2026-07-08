@@ -13,9 +13,13 @@ PostgreSQL).
 | Kind | Names |
 |------|-------|
 | Infra | `kafka` (KRaft StatefulSet), `schema-registry`, `postgres` (StatefulSet, one DB per consumer) |
-| Services | `accident-event-stream` (router), `emergency-service`, `law-enforcement-service`, `firerescue-service`, `statistics-service` |
+| Services | `accident-event-stream` (router), `emergency-service`, `law-enforcement-service`, `firerescue-service`, `statistics-service`, `dispatch-service`, `notification-service`, `incident-correlation-service`, `citizen-report-gateway`, `search-service`, `enrichment-service` |
 | Dashboard | `uiapp` |
 | On-demand | `stream-bombarder` (a `Job`, applied separately) |
+
+> **Not deployed here:** Elasticsearch. `search-service` reads `ELASTICSEARCH_URL`
+> (default `http://elasticsearch:9200`) — provide your own, or scale that Deployment to 0
+> (`kubectl -n ams scale deploy/search-service --replicas=0`) if you don't need search.
 
 Everything lands in the **`ams`** namespace. Apps read Kafka/Schema-Registry from the `ams-config`
 ConfigMap and DB credentials from the `ams-db` Secret.
@@ -54,7 +58,7 @@ docker build --build-arg MODULE=tools/uiapp -t ams/uiapp:latest .
 The manifests use `imagePullPolicy: IfNotPresent` with local `ams/*` tags (no registry).
 
 - **Docker Desktop K8s:** nothing to do — it shares the local Docker images.
-- **kind:** `for n in accident-event-stream emergency-service law-enforcement-service firerescue-service statistics-service uiapp stream-bombarder; do kind load docker-image ams/$n:latest; done`
+- **kind:** `for n in accident-event-stream emergency-service law-enforcement-service firerescue-service statistics-service dispatch-service notification-service incident-correlation-service citizen-report-gateway search-service enrichment-service uiapp stream-bombarder; do kind load docker-image ams/$n:latest; done`
 - **minikube:** `for n in …; do minikube image load ams/$n:latest; done`
 
 To use a registry instead, push the images and set the tags in
@@ -112,8 +116,10 @@ the broker default RF (1).
 ## Notes
 
 - **One database per consumer.** `postgres-init` creates `ams_emergency`, `ams_lawenf`,
-  `ams_firerescue`, `ams_statistics`; each service's `POSTGRES_URL` points at its own (they can't
-  share one schema — their Flyway migrations would collide).
+  `ams_firerescue`, `ams_statistics`, `ams_dispatch`, `ams_notification`, `ams_correlation`; each
+  service's `POSTGRES_URL` points at its own (they can't share one schema — their Flyway
+  migrations would collide). `citizen-report-gateway`, `search-service` and `enrichment-service`
+  have no database.
 - **Probes.** Services use the actuator liveness/readiness groups; the `uiapp` (no actuator) is
   probed on `/`.
 - **Metrics.** Pods carry `prometheus.io/scrape` annotations; point a Prometheus (e.g. the

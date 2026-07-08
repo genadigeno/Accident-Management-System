@@ -117,7 +117,8 @@ Every incident — regardless of type — is also fed to the **statistics-servic
 |------|---------|-------|
 | JDK | 17+ | `JAVA_HOME` must be set |
 | Maven | 3.8+ | or use the bundled `mvnw` wrapper if present |
-| Docker + Docker Compose | latest | runs Kafka, Schema Registry, PostgreSQL |
+| Docker + Docker Compose | latest | runs Kafka, Schema Registry, PostgreSQL, Prometheus, Grafana |
+| Elasticsearch | 8.x / 9.x | **only for `search-service`** — reachable at `localhost:9200` with security disabled; it is **not** part of the compose file (run your own single node or cluster) |
 | Git | latest | |
 
 ### 1. Clone
@@ -143,7 +144,12 @@ docker compose ps          # wait until healthy
 | Schema Registry | http://localhost:8081 |
 | Prometheus | http://localhost:9090 |
 | Grafana | http://localhost:3000 — login `admin` / `admin` |
-| PostgreSQL | `localhost:5432` — db `accident_management_service`, user `test`, pass `postgres` |
+| PostgreSQL | `localhost:5432` — user `test`, pass `postgres`; auto-creates one database **per service** (`ams_emergency`, `ams_lawenf`, `ams_firerescue`, `ams_statistics`, `ams_dispatch`, `ams_notification`, `ams_correlation`) on first start |
+
+> 🗄️ **One database per service.** The consumer services can't share a database — their Flyway
+> histories would collide. The compose file mounts [`infra/db/init`](infra/db) into Postgres, which
+> creates all the per-service databases on the **first** `docker compose up`. If you already have an
+> older `ams-db` volume without them, recreate it: `docker compose down -v && docker compose up -d`.
 
 Stop them with `docker compose down` (add `-v` to also wipe data).
 
@@ -161,22 +167,50 @@ mvn clean package
 ### 4. Start the services
 
 Each service is a plain **`java -jar` on your host** (not containerised). Start the **router
-first**, then the responders — one terminal each:
+first**, then the rest — one terminal each. The DB-backed services must point at **their own
+database** (created in step 2); the others need no database.
 
 ```bash
-# 1) The router (Kafka Streams)
+# 1) Router (Kafka Streams) — no database
 java -jar services/accident-event-stream/target/accident-event-stream.jar
 
-# 2) The responder services
-java -jar services/emergency-service/target/emergency-service.jar
-java -jar services/law-enforcement-service/target/law-enforcement-service.jar
-java -jar services/firerescue-service/target/fire-rescue-service.jar
-java -jar services/statistics-service/target/statistics-service.jar
+# 2) Responder services — each with its OWN database
+POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_emergency  java -jar services/emergency-service/target/emergency-service.jar
+POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_lawenf     java -jar services/law-enforcement-service/target/law-enforcement-service.jar
+POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_firerescue java -jar services/firerescue-service/target/fire-rescue-service.jar
+POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_statistics java -jar services/statistics-service/target/statistics-service.jar
+
+# 3) Dispatch, notification, correlation — each with its own database
+POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_dispatch     java -jar services/dispatch-service/target/dispatch-service.jar
+POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_notification java -jar services/notification-service/target/notification-service.jar
+POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_correlation  java -jar services/incident-correlation-service/target/incident-correlation-service.jar
+
+# 4) Public intake gateway + enrichment — no database
+java -jar services/citizen-report-gateway/target/citizen-report-gateway.jar
+java -jar services/enrichment-service/target/enrichment-service.jar
+
+# 5) Search — needs a reachable Elasticsearch (ELASTICSEARCH_URL, default http://localhost:9200)
+java -jar services/search-service/target/search-service.jar
 ```
 
-They default to the tools above (localhost Kafka/Schema Registry, and `test`/`postgres` on the
-Docker PostgreSQL). Override any setting via env vars or `-D` args — see [Configuration](#-configuration).
-On Windows, the [`infra/run-*.bat`](infra) helpers wrap these commands with local defaults.
+Each service listens on a **distinct port** so they can all run on one host:
+
+| Service | Port | Database | | Service | Port | Database |
+|---------|:----:|----------|-|---------|:----:|----------|
+| accident-event-stream (router) | 8080 | — | | dispatch-service | 8087 | `ams_dispatch` |
+| emergency-service | 18089 | `ams_emergency` | | notification-service | 8088 | `ams_notification` |
+| law-enforcement-service | 28089 | `ams_lawenf` | | incident-correlation-service | 8089 | `ams_correlation` |
+| firerescue-service | 38089 | `ams_firerescue` | | citizen-report-gateway | 8090 | — |
+| statistics-service | 48089 | `ams_statistics` | | search-service | 8091 | — (Elasticsearch) |
+| uiapp (dashboard) | 9000 | — | | enrichment-service | 8092 | — |
+
+Everything else defaults to the tools above (localhost Kafka/Schema Registry, `test`/`postgres`).
+Override any setting via env vars or `-D` args — see [Configuration](#-configuration).
+
+> On **Windows PowerShell**, set the variable first: `$env:POSTGRES_URL='jdbc:postgresql://localhost:5432/ams_emergency'; java -jar …`.
+> The [`infra/run-*.bat`](infra) helpers wrap the original responders with local defaults.
+> Only the **router + at least one responder** are needed for a minimal run; start the rest as you
+> want those features.
 
 ---
 
@@ -302,18 +336,27 @@ Every service is configured via environment variables (with sensible local defau
 | `FIRE_RESCUE_SERVICE_TOPIC_NAME` | `fire-rescue.events` | Fire-rescue sink topic |
 | `STATISTICS_SERVICE_TOPIC_NAME` | `statistics.events` | Statistics sink topic |
 
-### Consumer services (`emergency`, `law-enforcement`, `firerescue`, `statistics`)
+### DB-backed services (`emergency`, `law-enforcement`, `firerescue`, `statistics`, `dispatch`, `notification`, `incident-correlation`)
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `SERVER_PORT` | `18089` / `28089` / `38089` / `48089` | HTTP port (distinct per service so they can run on one host) |
-| `MAIN_TOPIC_NAME` | e.g. `emergency.events` | The topic this service consumes |
+| `SERVER_PORT` | per service (see the ports table above) | HTTP port, distinct per service |
+| `MAIN_TOPIC_NAME` / `SOURCE_TOPIC_NAME` | e.g. `emergency.events` | Topic(s) this service consumes |
 | `DLT_TOPIC_NAME` | e.g. `emergency.events.dlt` | Dead-letter topic for unprocessable messages |
-| `POSTGRES_URL` | `jdbc:postgresql://localhost:5432/accident_management_service` | JDBC URL |
-| `POSTGRES_USER` | `test` | Database user (matches the bundled Docker infra) |
-| `POSTGRES_PASSWORD` | `postgres` | Database password (matches the bundled Docker infra) |
+| `POSTGRES_URL` | `jdbc:postgresql://localhost:5432/accident_management_service` | JDBC URL — **point each service at its own database** (`ams_emergency`, …) |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` | `test` / `postgres` | Credentials (match the bundled Docker infra) |
+| `DB_POOL_MAX_SIZE` | `15` | HikariCP max connections (Postgres runs with `max_connections=200`) |
+| `LISTENER_CONCURRENCY` | `3` | Kafka listener threads per service (≈ one per topic partition) |
 
 > 🔐 **Production note:** never rely on the default credentials above. Supply secrets via environment variables, a secrets manager, or an orchestrator (see [`.env.example`](.env.example)).
+
+### DB-less services
+
+| Service | Key variables | Default |
+|---------|---------------|---------|
+| `search-service` (8091) | `ELASTICSEARCH_URL` · `ELASTICSEARCH_INDEX` | `http://localhost:9200` · `ams-incidents` |
+| `enrichment-service` (8092) | `OPEN_METEO_URL` · `OPEN_METEO_INSECURE_TLS` | Open-Meteo · `false` (dev-only TLS bypass for intercepting proxies) |
+| `citizen-report-gateway` (8090) | `GATEWAY_API_KEYS` · `GATEWAY_RATE_LIMIT` · `GATEWAY_CORRELATION_URL` | *(empty = open)* · `10`/min · `http://localhost:8089` |
 
 ### Profiles & health
 
@@ -322,9 +365,12 @@ Each service ships two Spring profiles — `dev` (default) and `prod`:
 | | `dev` | `prod` |
 |---|---|---|
 | SQL logging | on | off |
-| Hibernate `ddl-auto` | `update` | `validate` |
+| Hibernate `ddl-auto` | `validate` | `validate` |
 | Actuator health detail | `always` | `when-authorized` |
 | Log level | `DEBUG` (app) | `WARN` (root) |
+
+> The schema is owned by **Flyway** migrations in every service; Hibernate only `validate`s it in
+> both profiles (it never auto-creates tables).
 
 Select the profile with `SPRING_PROFILES_ACTIVE=prod`. Actuator endpoints are exposed at
 `/actuator/health`, `/actuator/info`, and `/actuator/metrics`.
@@ -362,7 +408,9 @@ docker compose up -d prometheus grafana
 | Grafana | http://localhost:3000 | login `admin` / `admin`; the **AMS — Service Overview** dashboard is pre-provisioned |
 
 > Prometheus reaches the host-run services via `host.docker.internal` on their default ports
-> (`8080`, `18089`, `28089`, `38089`, `48089`) — run the services on those ports for metrics to appear.
+> (`8080`, `18089`, `28089`, `38089`, `48089`, and `8087`–`8092`) — run the services on those ports
+> for metrics to appear. Per-service throughput counters (`ams.events.received` /
+> `ams.events.processed`) and the dashboard's **Services** table surface consume-vs-process rates.
 
 ---
 
@@ -373,11 +421,10 @@ The apps are containerized with a single shared multi-stage [`Dockerfile`](Docke
 infrastructure (Kafka, Schema Registry, PostgreSQL) into an `ams` namespace.
 
 ```bash
-# 1. build the images (one Dockerfile, selected per module)
-docker build --build-arg MODULE=services/emergency-service -t ams/emergency-service .
-#    … repeat for each service, plus tools/uiapp and tools/stream-bombarder-app
+# 1. build all images (one Dockerfile, selected per module)
+./k8s/build-images.sh            # or .\k8s\build-images.ps1 on Windows
 
-# 2. deploy everything
+# 2. deploy everything (11 services + uiapp + single-node dev infra)
 kubectl apply -k k8s/
 kubectl -n ams get pods -w                       # wait until Ready
 
@@ -385,9 +432,12 @@ kubectl -n ams get pods -w                       # wait until Ready
 kubectl -n ams port-forward svc/uiapp 9000:9000  # → http://localhost:9000
 ```
 
-The router's init container pre-creates the Kafka topics at replication factor 1, so the
-unchanged services run on a single broker. Full guide — building/loading images for
-kind/minikube/Docker-Desktop, generating load, teardown — in [`k8s/README.md`](k8s/README.md).
+The router's init container pre-creates the Kafka topics at replication factor 1, and
+`postgres-init` creates the per-service databases — so the unchanged services run on single-node
+infra. **`search-service` needs an Elasticsearch** reachable at `ELASTICSEARCH_URL` (default
+`http://elasticsearch:9200`); it is not deployed by these manifests — provide your own or scale
+that Deployment to 0. Full guide — building/loading images for kind/minikube/Docker-Desktop,
+generating load, teardown — in [`k8s/README.md`](k8s/README.md).
 
 ---
 
