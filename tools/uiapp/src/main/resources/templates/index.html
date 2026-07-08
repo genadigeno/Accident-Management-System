@@ -207,11 +207,15 @@
                 <div id="range-rate-wrap" class="d-none d-flex gap-2">
                     <div>
                         <label for="rateMin" class="form-label mb-1">Min / sec</label>
-                        <input type="number" id="rateMin" class="form-control" value="10" min="1" max="100000" style="width: 110px;">
+                        <input type="number" id="rateMin" class="form-control" value="10" min="1" max="100000" style="width: 105px;">
                     </div>
                     <div>
                         <label for="rateMax" class="form-label mb-1">Max / sec</label>
-                        <input type="number" id="rateMax" class="form-control" value="100" min="1" max="100000" style="width: 110px;">
+                        <input type="number" id="rateMax" class="form-control" value="100" min="1" max="100000" style="width: 105px;">
+                    </div>
+                    <div>
+                        <label for="scale" class="form-label mb-1" title="stream-bombarder scale: multiplies the per-second burst">Scale ×</label>
+                        <input type="number" id="scale" class="form-control" value="1" min="1" max="1000" style="width: 90px;">
                     </div>
                 </div>
                 <button id="generate" class="btn btn-primary">Send</button>

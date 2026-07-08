@@ -39,6 +39,7 @@ public class SystemInfoController {
         Recommendations rec = new Recommendations(
                 maxInstancesByRam,
                 recommendedConcurrentConsumers,
+                "~500 to 1,000 events/sec (scales with LISTENER_CONCURRENCY)",
                 estLow + " to " + estHigh + " events/sec end-to-end (bursts higher)",
                 "RAM caps how many instances fit; CPU (" + cpuThreads
                         + " threads) caps sustained throughput. ~half the RAM is reserved for Kafka/DB/ES.");
@@ -59,7 +60,7 @@ public class SystemInfoController {
     }
 
     public record Recommendations(int maxServiceInstances, int recommendedConcurrentConsumers,
-                                  String estimatedThroughput, String note) {}
+                                  String eventsPerInstance, String estimatedThroughput, String note) {}
 
     public record SystemInfo(String os, String arch, int cpuThreads, double totalRamGb, double freeRamGb,
                              long jvmMaxHeapMb, Double cpuLoadPct, Recommendations recommendations) {}

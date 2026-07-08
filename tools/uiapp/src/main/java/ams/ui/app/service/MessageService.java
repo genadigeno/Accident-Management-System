@@ -77,10 +77,13 @@ public class MessageService {
             case "RANGE_RATE" -> {
                 int min = req.getRateMin();
                 int max = req.getRateMax();
-                if (min < 1 || max < min || max > MAX_RATE) {
-                    throw new IllegalArgumentException("require 1 <= rateMin <= rateMax <= " + MAX_RATE);
+                int scale = req.getScale() < 1 ? 1 : req.getScale();
+                // Stream-bombarder model: a random [min,max] burst scaled by the multiplier.
+                if (min < 1 || max < min || (long) max * scale > MAX_RATE) {
+                    throw new IllegalArgumentException(
+                            "require 1 <= rateMin <= rateMax and rateMax * scale <= " + MAX_RATE);
                 }
-                schedulePaced(batch, total, () -> min + random.nextInt(max - min + 1));
+                schedulePaced(batch, total, () -> (min + random.nextInt(max - min + 1)) * scale);
             }
             default -> throw new IllegalArgumentException("mode must be AT_ONCE, FIXED_RATE or RANGE_RATE");
         }

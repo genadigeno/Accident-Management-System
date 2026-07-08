@@ -290,12 +290,17 @@ function renderSystem(s) {
         + (s.cpuLoadPct != null ? sysTile(s.cpuLoadPct + '%', 'CPU load') : '')
         + '</div>'
         + '<div class="fw-semibold small mb-2" style="color:var(--ams-total)">Recommendations</div>'
+        + '<div class="row g-3 mb-2">'
+        + '<div class="col-md-6"><div class="mini-tile h-100 d-flex flex-column justify-content-center">'
+        + '<div class="fw-semibold" style="color:var(--ams-fire)">' + escapeHtml(r.eventsPerInstance) + '</div>'
+        + '<div class="mini-label">a single service instance can handle</div></div></div>'
+        + '<div class="col-md-6"><div class="mini-tile h-100 d-flex flex-column justify-content-center">'
+        + '<div class="fw-semibold" style="color:var(--ams-fire)">' + escapeHtml(r.estimatedThroughput) + '</div>'
+        + '<div class="mini-label">full pipeline, all services</div></div></div>'
+        + '</div>'
         + '<div class="row g-3">'
         + sysTile(Number(r.maxServiceInstances).toLocaleString(), 'max service instances', 'var(--ams-car)')
         + sysTile(r.recommendedConcurrentConsumers, 'consumers / core', 'var(--ams-car)')
-        + '<div class="col-md-6"><div class="mini-tile h-100 d-flex flex-column justify-content-center">'
-        + '<div class="fw-semibold small" style="color:var(--ams-fire)">' + escapeHtml(r.estimatedThroughput) + '</div>'
-        + '<div class="mini-label">estimated sustained throughput</div></div></div>'
         + '</div>'
         + '<div class="text-muted small mt-2">' + escapeHtml(r.note) + '</div>';
 }
@@ -321,6 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (mode === 'RANGE_RATE') {
             params.set('rateMin', document.getElementById('rateMin').value);
             params.set('rateMax', document.getElementById('rateMax').value);
+            params.set('scale', document.getElementById('scale').value);
         }
         const result = document.getElementById('generate-result');
         result.textContent = 'sending…';
