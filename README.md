@@ -124,7 +124,7 @@ Every incident — regardless of type — is also fed to the **statistics-servic
 ### 1. Clone
 
 ```bash
-git clone https://github.com/<your-username>/accident-management-system.git
+git clone https://github.com/genadigeno/accident-management-system.git
 cd accident-management-system
 ```
 
