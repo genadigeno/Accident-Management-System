@@ -163,33 +163,242 @@ mvn clean package
 
 > ℹ️ The shared `ams-schemas` Avro contract lives in [`libs/ams-schemas`](libs/ams-schemas) and is
 > built first. To build one module: `mvn -f services/emergency-service/pom.xml clean package`.
-
 ### 4. Start the services
 
-Each service is a plain **`java -jar` on your host** (not containerised). Start the **router
-first**, then the rest — one terminal each. The DB-backed services must point at **their own
-database** (created in step 2); the others need no database.
+Each service runs as a plain **`java -jar` process on the host** (not containerised).
+
+Start the **router first**, then start the remaining services. Run each service in a separate terminal.
+
+The database-backed services must point to **their own PostgreSQL database**, as created in step 2. Services marked as **no database** do not require `POSTGRES_URL`.
+
+#### 1. Router — Kafka Streams
+
+The router does not require a database.
+
+**Windows — PowerShell**
+
+```powershell
+java -jar "services/accident-event-stream/target/accident-event-stream.jar"
+```
+
+**Windows — Command Prompt (CMD)**
+
+```cmd
+java -jar services\accident-event-stream\target\accident-event-stream.jar
+```
+
+**Linux / macOS**
 
 ```bash
-# 1) Router (Kafka Streams) — no database
 java -jar services/accident-event-stream/target/accident-event-stream.jar
+```
 
-# 2) Responder services — each with its OWN database
-POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_emergency  java -jar services/emergency-service/target/emergency-service.jar
-POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_lawenf     java -jar services/law-enforcement-service/target/law-enforcement-service.jar
+---
+
+#### 2. Responder services
+
+Each responder service uses its **own PostgreSQL database**.
+
+##### Emergency Service
+
+**Windows — PowerShell**
+
+```powershell
+$env:POSTGRES_URL="jdbc:postgresql://localhost:5432/ams_emergency"; java -jar "services/emergency-service/target/emergency-service.jar"
+```
+
+**Windows — Command Prompt (CMD)**
+
+```cmd
+set POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_emergency && java -jar services\emergency-service\target\emergency-service.jar
+```
+
+**Linux / macOS**
+
+```bash
+POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_emergency java -jar services/emergency-service/target/emergency-service.jar
+```
+
+##### Law Enforcement Service
+
+**Windows — PowerShell**
+
+```powershell
+$env:POSTGRES_URL="jdbc:postgresql://localhost:5432/ams_lawenf"; java -jar "services/law-enforcement-service/target/law-enforcement-service.jar"
+```
+
+**Windows — Command Prompt (CMD)**
+
+```cmd
+set POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_lawenf && java -jar services\law-enforcement-service\target\law-enforcement-service.jar
+```
+
+**Linux / macOS**
+
+```bash
+POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_lawenf java -jar services/law-enforcement-service/target/law-enforcement-service.jar
+```
+
+##### Fire & Rescue Service
+
+**Windows — PowerShell**
+
+```powershell
+$env:POSTGRES_URL="jdbc:postgresql://localhost:5432/ams_firerescue"; java -jar "services/firerescue-service/target/fire-rescue-service.jar"
+```
+
+**Windows — Command Prompt (CMD)**
+
+```cmd
+set POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_firerescue && java -jar services\firerescue-service\target\fire-rescue-service.jar
+```
+
+**Linux / macOS**
+
+```bash
 POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_firerescue java -jar services/firerescue-service/target/fire-rescue-service.jar
+```
+
+##### Statistics Service
+
+**Windows — PowerShell**
+
+```powershell
+$env:POSTGRES_URL="jdbc:postgresql://localhost:5432/ams_statistics"; java -jar "services/statistics-service/target/statistics-service.jar"
+```
+
+**Windows — Command Prompt (CMD)**
+
+```cmd
+set POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_statistics && java -jar services\statistics-service\target\statistics-service.jar
+```
+
+**Linux / macOS**
+
+```bash
 POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_statistics java -jar services/statistics-service/target/statistics-service.jar
+```
 
-# 3) Dispatch, notification, correlation — each with its own database
-POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_dispatch     java -jar services/dispatch-service/target/dispatch-service.jar
+---
+
+#### 3. Dispatch, notification and correlation services
+
+Each service uses its **own PostgreSQL database**.
+
+##### Dispatch Service
+
+**Windows — PowerShell**
+
+```powershell
+$env:POSTGRES_URL="jdbc:postgresql://localhost:5432/ams_dispatch"; java -jar "services/dispatch-service/target/dispatch-service.jar"
+```
+
+**Windows — Command Prompt (CMD)**
+
+```cmd
+set POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_dispatch && java -jar services\dispatch-service\target\dispatch-service.jar
+```
+
+**Linux / macOS**
+
+```bash
+POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_dispatch java -jar services/dispatch-service/target/dispatch-service.jar
+```
+
+##### Notification Service
+
+**Windows — PowerShell**
+
+```powershell
+$env:POSTGRES_URL="jdbc:postgresql://localhost:5432/ams_notification"; java -jar "services/notification-service/target/notification-service.jar"
+```
+
+**Windows — Command Prompt (CMD)**
+
+```cmd
+set POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_notification && java -jar services\notification-service\target\notification-service.jar
+```
+
+**Linux / macOS**
+
+```bash
 POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_notification java -jar services/notification-service/target/notification-service.jar
-POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_correlation  java -jar services/incident-correlation-service/target/incident-correlation-service.jar
+```
 
-# 4) Public intake gateway + enrichment — no database
+##### Incident Correlation Service
+
+**Windows — PowerShell**
+
+```powershell
+$env:POSTGRES_URL="jdbc:postgresql://localhost:5432/ams_correlation"; java -jar "services/incident-correlation-service/target/incident-correlation-service.jar"
+```
+
+**Windows — Command Prompt (CMD)**
+
+```cmd
+set POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_correlation && java -jar services\incident-correlation-service\target\incident-correlation-service.jar
+```
+
+**Linux / macOS**
+
+```bash
+POSTGRES_URL=jdbc:postgresql://localhost:5432/ams_correlation java -jar services/incident-correlation-service/target/incident-correlation-service.jar
+```
+
+---
+
+#### 4. Public intake gateway and enrichment
+
+These services do not require a PostgreSQL database.
+
+**Windows — PowerShell**
+
+```powershell
+java -jar "services/citizen-report-gateway/target/citizen-report-gateway.jar"
+java -jar "services/enrichment-service/target/enrichment-service.jar"
+```
+
+**Windows — Command Prompt (CMD)**
+
+```cmd
+java -jar services\citizen-report-gateway\target\citizen-report-gateway.jar
+java -jar services\enrichment-service\target\enrichment-service.jar
+```
+
+**Linux / macOS**
+
+```bash
 java -jar services/citizen-report-gateway/target/citizen-report-gateway.jar
 java -jar services/enrichment-service/target/enrichment-service.jar
+```
 
-# 5) Search — needs a reachable Elasticsearch (ELASTICSEARCH_URL, default http://localhost:9200)
+---
+
+#### 5. Search Service
+
+The Search Service requires a reachable Elasticsearch instance.
+
+By default, it expects:
+
+```text
+ELASTICSEARCH_URL=http://localhost:9200
+```
+
+**Windows — PowerShell**
+
+```powershell
+java -jar "services/search-service/target/search-service.jar"
+```
+
+**Windows — Command Prompt (CMD)**
+
+```cmd
+java -jar services\search-service\target\search-service.jar
+```
+
+**Linux / macOS**
+
+```bash
 java -jar services/search-service/target/search-service.jar
 ```
 
