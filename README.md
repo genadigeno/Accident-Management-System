@@ -285,6 +285,12 @@ Open **http://localhost:9000**, set an event count, and click **Send**. The back
 (REST + STOMP/WebSocket) and can be hosted as a **separate front-end app** — set
 `window.AMS_BACKEND` and `FRONTEND_ORIGINS` for CORS. Full details: [`tools/uiapp`](tools/uiapp).
 
+<img width="1885" height="759" alt="1" src="https://github.com/user-attachments/assets/c4999255-9e3a-43d1-847a-eac054afb76a" />
+<img width="1334" height="704" alt="2" src="https://github.com/user-attachments/assets/7a39d5da-c4e9-4561-b76f-4dfd9ef63985" />
+<img width="1324" height="630" alt="3" src="https://github.com/user-attachments/assets/6b291a61-1f97-4b58-b5fe-4647dafa8f3f" />
+<img width="1312" height="915" alt="4" src="https://github.com/user-attachments/assets/cb1dbd40-d042-4f39-a8b8-6c9b1341b8ff" />
+
+
 ### DLT replay — recover failed messages
 
 Replays records from a dead-letter topic back to their source topic (byte-for-byte, with Spring's
